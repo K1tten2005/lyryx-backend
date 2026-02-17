@@ -1,13 +1,13 @@
 package main
 
 import (
-	"lyryx-backend/internal/config"
-	"lyryx-backend/internal/rest_api"
-	authHandlers "lyryx-backend/internal/rest_api/auth"
-	"lyryx-backend/internal/rest_api/utils"
-	authUsecase "lyryx-backend/internal/usecases/auth"
-	authStorage "lyryx-backend/internal/usecases/auth/storage"
-	authWrappers "lyryx-backend/internal/usecases/auth/wrappers"
+	"github.com/K1tten2005/lyryx-backend/internal/config"
+	"github.com/K1tten2005/lyryx-backend/internal/rest_api"
+	authHandlers "github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
+	"github.com/K1tten2005/lyryx-backend/internal/rest_api/utils"
+	authUsecase "github.com/K1tten2005/lyryx-backend/internal/usecases/auth"
+	authStorage "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/storage"
+	authWrappers "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/wrappers"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jmoiron/sqlx"
@@ -26,6 +26,9 @@ func init() {
 	}
 }
 
+// @title lyryx API
+// @version 1.0
+// @host localhost:8080
 func main() {
 	// Logger.
 	logger := log.New()
@@ -56,7 +59,7 @@ func main() {
 
 	echoHandler := echo.New()
 
-	// Middleware for checking authorization.
+	// Auth middleware.
 	authMiddleware := echojwt.WithConfig(authConfig)
 
 	// Validator.

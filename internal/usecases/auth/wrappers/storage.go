@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"lyryx-backend/internal/usecases/auth/dto"
-	storageDto "lyryx-backend/internal/usecases/auth/storage"
+	"github.com/K1tten2005/lyryx-backend/internal/usecases/auth/dto"
+	storageDto "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/storage"
 )
 
 var (

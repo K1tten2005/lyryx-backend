@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"lyryx-backend/internal/usecases/auth/dto"
-	"lyryx-backend/internal/usecases/auth/wrappers"
+	"github.com/K1tten2005/lyryx-backend/internal/usecases/auth/dto"
+	"github.com/K1tten2005/lyryx-backend/internal/usecases/auth/wrappers"
 
 	"golang.org/x/crypto/bcrypt"
 )

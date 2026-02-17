@@ -1,4 +1,4 @@
-module lyryx-backend
+module github.com/K1tten2005/lyryx-backend
 
 go 1.24.2
 
