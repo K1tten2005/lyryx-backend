@@ -1,0 +1,3 @@
+**/mocks/** -diff
+docs/swagger.json -diff
+docs/swagger.yaml -diff
