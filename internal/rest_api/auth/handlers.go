@@ -94,16 +94,16 @@ func generateTokens(userInfo *dto.UserInfo, jwtSecret []byte) (
 
 // PostSignUp godoc
 // @Summary       Регистрация пользователя
-// @Description   Регистрация пользователя
 // @Tags         auth
+// @Accept       json
 // @Produce      json
-// @Param 	     request query   PostSignUpIn   true "Параметры запроса."
+// @Param 	     request body   PostSignUpIn   true "Параметры запроса."
 // @Success      200    {object} PostSignUpOut       "Успешный ответ с access_token"
 // @Failure      400    {object} echo.HTTPError      "Некорректный запрос"
 // @Failure      404    {object} echo.HTTPError      "Информация не найдена"
 // @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
 // @Failure      409    {object} echo.HTTPError      "Пользователь уже зарегистрирован"
-// @Router       /v1/auth/sign-up [get]
+// @Router       /v1/auth/sign-up [post]
 func (h *Handlers) PostSignUp(c echo.Context) error {
 	ctx := c.Request().Context()
 	req := new(PostSignUpIn)
@@ -178,15 +178,15 @@ func signUpInToOpts(req *PostSignUpIn) (dto.SignUpOpts, error) {
 
 // PostSignIn godoc
 // @Summary       Авторизация пользователя
-// @Description   Авторизация пользователя
 // @Tags         auth
 // @Produce      json
-// @Param 	     request query   PostSignInIn   true "Параметры запроса."
+// @Accept       json
+// @Param 	     request body   PostSignInIn   true "Параметры запроса."
 // @Success      200    {object} PostSignInOut       "Успешный ответ с access_token"
 // @Failure      400    {object} echo.HTTPError      "Некорректный запрос"
 // @Failure      404    {object} echo.HTTPError      "Информация не найдена"
 // @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
-// @Router       /v1/auth/sign-in [get]
+// @Router       /v1/auth/sign-in [post]
 func (h *Handlers) PostSignIn(c echo.Context) error {
 	ctx := c.Request().Context()
 	req := new(PostSignInIn)
@@ -243,7 +243,7 @@ func (h *Handlers) PostSignIn(c echo.Context) error {
 		MaxAge:   int(refreshTokenExp.Seconds()),
 	})
 
-	return c.JSON(http.StatusOK, PostSignUpOut{
+	return c.JSON(http.StatusOK, PostSignInOut{
 		AccessToken: signedAccessToken,
 	})
 }

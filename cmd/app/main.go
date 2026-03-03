@@ -26,9 +26,10 @@ func init() {
 	}
 }
 
-// @title lyryx API
-// @version 1.0
-// @host localhost:8080
+// @title     lyryx API
+// @version   1.0
+// @host      localhost:8080
+// @BasePath  /
 func main() {
 	// Logger.
 	logger := log.New()
