@@ -12,3 +12,13 @@ type UserInfo struct {
 	Username   string
 	Role       string
 }
+
+type SignInOpts struct {
+	Email    string
+	Password string
+}
+
+type SetNewRefreshTokenOpts struct {
+	Email    string
+	RefreshToken string
+}

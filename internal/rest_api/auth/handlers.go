@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/K1tten2005/lyryx-backend/internal/rest_api/utils/user_validation"
-	"github.com/K1tten2005/lyryx-backend/internal/usecases/auth/dto"
-	usecase "github.com/K1tten2005/lyryx-backend/internal/usecases/auth"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/K1tten2005/lyryx-backend/internal/rest_api/utils/user_validation"
+	usecase "github.com/K1tten2005/lyryx-backend/internal/usecases/auth"
+	"github.com/K1tten2005/lyryx-backend/internal/usecases/auth/dto"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
@@ -23,6 +24,8 @@ const (
 
 type authGetter interface {
 	PostSignUp(ctx context.Context, opts dto.SignUpOpts) (dto.UserInfo, error)
+	PostSignIn(ctx context.Context, opts dto.SignInOpts) (dto.UserInfo, error)
+	SetNewRefreshToken(ctx context.Context, opts dto.SetNewRefreshTokenOpts) error
 }
 
 type Handlers struct {
@@ -46,7 +49,7 @@ func New(
 func (h *Handlers) RegisterHandlers(e *echo.Echo, authMiddleware echo.MiddlewareFunc) {
 	public := e.Group("")
 	public.POST("/v1/auth/sign-up", h.PostSignUp)
-	//public.POST("/v1/auth/sign-in", h.PostSignIn)
+	public.POST("/v1/auth/sign-in", h.PostSignIn)
 
 	private := e.Group("")
 	private.Use(authMiddleware)
@@ -89,6 +92,18 @@ func generateTokens(userInfo *dto.UserInfo, jwtSecret []byte) (
 	return signedAccessToken, signedRefreshToken, nil
 }
 
+// PostSignUp godoc
+// @Summary       Регистрация пользователя
+// @Description   Регистрация пользователя
+// @Tags         auth
+// @Produce      json
+// @Param 	     request query   PostSignUpIn   true "Параметры запроса."
+// @Success      200    {object} PostSignUpOut       "Успешный ответ с access_token"
+// @Failure      400    {object} echo.HTTPError      "Некорректный запрос"
+// @Failure      404    {object} echo.HTTPError      "Информация не найдена"
+// @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
+// @Failure      409    {object} echo.HTTPError      "Пользователь уже зарегистрирован"
+// @Router       /v1/auth/sign-up [get]
 func (h *Handlers) PostSignUp(c echo.Context) error {
 	ctx := c.Request().Context()
 	req := new(PostSignUpIn)
@@ -124,7 +139,7 @@ func (h *Handlers) PostSignUp(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
 
-		// 3. Установка refresh токена в куки.
+	// 3. Установка refresh токена в куки.
 	c.SetCookie(&http.Cookie{
 		Name:     "refresh_token",
 		Value:    signedRefreshToken,
@@ -156,6 +171,94 @@ func signUpInToOpts(req *PostSignUpIn) (dto.SignUpOpts, error) {
 
 	return dto.SignUpOpts{
 		Username: username,
+		Email:    email,
+		Password: req.Password,
+	}, nil
+}
+
+// PostSignIn godoc
+// @Summary       Авторизация пользователя
+// @Description   Авторизация пользователя
+// @Tags         auth
+// @Produce      json
+// @Param 	     request query   PostSignInIn   true "Параметры запроса."
+// @Success      200    {object} PostSignInOut       "Успешный ответ с access_token"
+// @Failure      400    {object} echo.HTTPError      "Некорректный запрос"
+// @Failure      404    {object} echo.HTTPError      "Информация не найдена"
+// @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
+// @Router       /v1/auth/sign-in [get]
+func (h *Handlers) PostSignIn(c echo.Context) error {
+	ctx := c.Request().Context()
+	req := new(PostSignInIn)
+	if err := c.Bind(req); err != nil {
+		h.logger.WithError(err).Warning("bind failed")
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
+	}
+
+	if err := c.Validate(req); err != nil {
+		h.logger.WithError(err).Warning("validate failed")
+		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
+	}
+
+	opts, err := signInInToOpts(req)
+	if err != nil {
+		h.logger.WithError(err).Warning("validate failed")
+		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": err.Error()})
+	}
+
+	// 1. Проверка учетных данных.
+	userInfo, err := h.authGetter.PostSignIn(ctx, opts)
+	if err != nil {
+		h.logger.WithError(err).Warning("verify login failed")
+		if errors.Is(err, usecase.ErrUserDoesntExist) || errors.Is(err, usecase.ErrInvalidPassword) {
+			return echo.NewHTTPError(http.StatusNotFound, "invalid email or password")
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
+	}
+
+	// Создаем токены.
+	signedAccessToken, signedRefreshToken, err := generateTokens(&userInfo, h.jwtSecret)
+	if err != nil {
+		h.logger.WithError(err).Warning("generate tokens failed")
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
+	}
+
+	// RefreshToken сохраняем в бд.
+	err = h.authGetter.SetNewRefreshToken(ctx, dto.SetNewRefreshTokenOpts{
+		Email:        opts.Email,
+		RefreshToken: signedRefreshToken,
+	})
+	if err != nil {
+		h.logger.WithError(err).Warning("set new refresh_token failed")
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
+	}
+
+	// 3. Установка refresh токена в куки.
+	c.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    signedRefreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true, // Установите в true для HTTPS.
+		MaxAge:   int(refreshTokenExp.Seconds()),
+	})
+
+	return c.JSON(http.StatusOK, PostSignUpOut{
+		AccessToken: signedAccessToken,
+	})
+}
+
+func signInInToOpts(req *PostSignInIn) (dto.SignInOpts, error) {
+	email := strings.ToLower(req.Email)
+	if err := user_validation.ValidateEmail(email); err != nil {
+		return dto.SignInOpts{}, fmt.Errorf("email validation failed: %v", err)
+	}
+
+	if err := user_validation.ValidatePassword(req.Password); err != nil {
+		return dto.SignInOpts{}, fmt.Errorf("password validation failed: %v", err)
+	}
+
+	return dto.SignInOpts{
 		Email:    email,
 		Password: req.Password,
 	}, nil

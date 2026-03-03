@@ -9,3 +9,8 @@ type PostSignUpIn struct {
 type PostSignUpOut struct {
 	AccessToken string `json:"access_token"`
 }
+
+type PostSignInIn struct {
+	Email    string `json:"email" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}

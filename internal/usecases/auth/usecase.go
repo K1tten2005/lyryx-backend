@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/K1tten2005/lyryx-backend/internal/usecases/auth/dto"
 	"github.com/K1tten2005/lyryx-backend/internal/usecases/auth/wrappers"
 
@@ -12,6 +13,8 @@ import (
 
 var (
 	ErrUserAlreadyExists = errors.New("user already exists")
+	ErrUserDoesntExist   = errors.New("user does not exist")
+	ErrInvalidPassword   = errors.New("invalid password")
 )
 
 const (
@@ -34,7 +37,11 @@ func (b *BcryptHasher) HashPassword(password string) (string, error) {
 }
 
 type storage interface {
-PostSignUp(ctx context.Context, opts dto.SignUpOpts) (dto.UserInfo, error)}
+	CreateUser(ctx context.Context, opts dto.SignUpOpts) (dto.UserInfo, error)
+	GetHashedPasswordByEmail(ctx context.Context, email string) (string, error)
+	GetUserInfoByEmail(ctx context.Context, email string) (dto.UserInfo, error)
+	SetNewRefreshToken(ctx context.Context, opts dto.SetNewRefreshTokenOpts) error 
+}
 
 type Usecase struct {
 	storage storage
@@ -59,7 +66,7 @@ func (u *Usecase) PostSignUp(ctx context.Context, opts dto.SignUpOpts) (dto.User
 	opts.Password = hashedPassword
 
 	// 3. Сохраняем пользователя.
-	userInfo, err := u.storage.PostSignUp(ctx, opts)
+	userInfo, err := u.storage.CreateUser(ctx, opts)
 	if err != nil {
 		if errors.Is(err, wrappers.ErrUserAlreadyExists) {
 			return dto.UserInfo{}, fmt.Errorf("post sign up: %w", ErrUserAlreadyExists)
@@ -68,4 +75,37 @@ func (u *Usecase) PostSignUp(ctx context.Context, opts dto.SignUpOpts) (dto.User
 	}
 
 	return userInfo, nil
+}
+
+func (u *Usecase) PostSignIn(ctx context.Context, opts dto.SignInOpts) (dto.UserInfo, error) {
+	// 1. Идем в бд за хешированным паролем.
+	hashedPasswordFromDB, err := u.storage.GetHashedPasswordByEmail(ctx, opts.Email)
+	if err != nil {
+		if errors.Is(err, wrappers.ErrUserDoesntExist) {
+			return dto.UserInfo{}, fmt.Errorf("get user by email: %w", ErrUserDoesntExist)
+		}
+		return dto.UserInfo{}, fmt.Errorf("user not found or database error: %v", err)
+	}
+
+	// 2. Сравниваем хеши.
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPasswordFromDB), []byte(opts.Password))
+	if err != nil {
+		return dto.UserInfo{}, fmt.Errorf("compare password: %w", ErrInvalidPassword)
+	}
+
+	// 3. Берем информацию пользователя.
+	userInfo, err := u.storage.GetUserInfoByEmail(ctx, opts.Email)
+	if err != nil {
+		return dto.UserInfo{}, fmt.Errorf("post sign in: %v", err)
+	}
+
+	return userInfo, nil
+}
+
+func (u *Usecase) SetNewRefreshToken(ctx context.Context, opts dto.SetNewRefreshTokenOpts) error {
+	err := u.storage.SetNewRefreshToken(ctx, opts)
+	if err != nil {
+		return fmt.Errorf("set new refresh token: %v", err)
+	}
+	return nil
 }
