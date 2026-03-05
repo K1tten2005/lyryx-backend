@@ -73,6 +73,7 @@ func (s *Storage) GetHashedPasswordByEmail(_ context.Context, email string) (str
 
 func (s *Storage) GetUserInfoByEmail(_ context.Context, email string) (UserInfo, error) {
 	query := `SELECT
+				id,
 				username,
 				role
 			FROM users
@@ -84,7 +85,7 @@ func (s *Storage) GetUserInfoByEmail(_ context.Context, email string) (UserInfo,
 
 	row := s.db.QueryRow(query, email)
 
-	err := row.Scan(&userInfo.Username, &userInfo.Role)
+	err := row.Scan(&userInfo.UserID, &userInfo.Username, &userInfo.Role)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return UserInfo{}, fmt.Errorf("failed to find user: %w", ErrUserDoesntExist)
@@ -104,5 +105,27 @@ func (s *Storage) SetNewRefreshToken(_ context.Context, filter SetNewRefreshToke
 	if err != nil {
 		return fmt.Errorf("failed to set new refresh token: %v", err)
 	}
+	return nil
+}
+
+func (s *Storage) SignOut(_ context.Context, email string) error {
+	query := `UPDATE users
+				SET refresh_token = NULL
+				WHERE email = $1;`
+
+	result, err := s.db.Exec(query, email)
+	if err != nil {
+		return fmt.Errorf("failed to clear refresh token: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to inspect affected rows: %v", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("sign out failed: %w", ErrUserDoesntExist)
+	}
+
 	return nil
 }

@@ -7,10 +7,10 @@ type SignUpOpts struct {
 }
 
 type UserInfo struct {
-	UserID     int
-	Email      string
-	Username   string
-	Role       string
+	UserID   int
+	Email    string
+	Username string
+	Role     string
 }
 
 type SignInOpts struct {
@@ -19,6 +19,10 @@ type SignInOpts struct {
 }
 
 type SetNewRefreshTokenOpts struct {
-	Email    string
+	Email        string
 	RefreshToken string
+}
+
+type SignOutOpts struct {
+	Email string
 }
