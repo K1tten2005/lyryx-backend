@@ -55,7 +55,7 @@ func main() {
 		NewClaimsFunc: func(_ echo.Context) jwt.Claims {
 			return new(authHandlers.JwtCustomClaims)
 		},
-		SigningKey: cfg.JWTSecret,
+		SigningKey: []byte(cfg.JWTSecret),
 	}
 
 	echoHandler := echo.New()

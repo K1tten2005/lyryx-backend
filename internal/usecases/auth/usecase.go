@@ -40,7 +40,8 @@ type storage interface {
 	CreateUser(ctx context.Context, opts dto.SignUpOpts) (dto.UserInfo, error)
 	GetHashedPasswordByEmail(ctx context.Context, email string) (string, error)
 	GetUserInfoByEmail(ctx context.Context, email string) (dto.UserInfo, error)
-	SetNewRefreshToken(ctx context.Context, opts dto.SetNewRefreshTokenOpts) error 
+	SetNewRefreshToken(ctx context.Context, opts dto.SetNewRefreshTokenOpts) error
+	SignOut(ctx context.Context, opts dto.SignOutOpts) error
 }
 
 type Usecase struct {
@@ -107,5 +108,14 @@ func (u *Usecase) SetNewRefreshToken(ctx context.Context, opts dto.SetNewRefresh
 	if err != nil {
 		return fmt.Errorf("set new refresh token: %v", err)
 	}
+	return nil
+}
+
+func (u *Usecase) SignOut(ctx context.Context, opts dto.SignOutOpts) error {
+	err := u.storage.SignOut(ctx, opts)
+	if err != nil {
+		return fmt.Errorf("sign out: %v", err)
+	}
+
 	return nil
 }

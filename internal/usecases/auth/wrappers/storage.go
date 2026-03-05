@@ -19,6 +19,7 @@ type storage interface {
 	GetHashedPasswordByEmail(_ context.Context, email string) (string, error)
 	GetUserInfoByEmail(_ context.Context, email string) (storageDto.UserInfo, error)
 	SetNewRefreshToken(_ context.Context, filter storageDto.SetNewRefreshTokenFilter) error
+	SignOut(_ context.Context, email string) error
 }
 
 type Storage struct {
@@ -78,12 +79,21 @@ func (s *Storage) GetUserInfoByEmail(ctx context.Context, email string) (dto.Use
 
 func (s *Storage) SetNewRefreshToken(ctx context.Context, opts dto.SetNewRefreshTokenOpts) error {
 	filter := storageDto.SetNewRefreshTokenFilter{
-		Email:    opts.Email,
+		Email:        opts.Email,
 		RefreshToken: opts.RefreshToken,
 	}
 	err := s.storage.SetNewRefreshToken(ctx, filter)
 	if err != nil {
 		return fmt.Errorf("set new refresh token: %v", err)
 	}
+	return nil
+}
+
+func (s *Storage) SignOut(ctx context.Context, opts dto.SignOutOpts) error {
+	err := s.storage.SignOut(ctx, opts.Email)
+	if err != nil {
+		return fmt.Errorf("sign out: %v", err)
+	}
+
 	return nil
 }

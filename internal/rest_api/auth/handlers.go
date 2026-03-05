@@ -26,6 +26,7 @@ type authGetter interface {
 	PostSignUp(ctx context.Context, opts dto.SignUpOpts) (dto.UserInfo, error)
 	PostSignIn(ctx context.Context, opts dto.SignInOpts) (dto.UserInfo, error)
 	SetNewRefreshToken(ctx context.Context, opts dto.SetNewRefreshTokenOpts) error
+	SignOut(ctx context.Context, opts dto.SignOutOpts) error
 }
 
 type Handlers struct {
@@ -53,6 +54,7 @@ func (h *Handlers) RegisterHandlers(e *echo.Echo, authMiddleware echo.Middleware
 
 	private := e.Group("")
 	private.Use(authMiddleware)
+	private.POST("/v1/auth/sign-out", h.PostSignOut)
 }
 
 func generateTokens(userInfo *dto.UserInfo, jwtSecret []byte) (
@@ -262,4 +264,48 @@ func signInInToOpts(req *PostSignInIn) (dto.SignInOpts, error) {
 		Email:    email,
 		Password: req.Password,
 	}, nil
+}
+
+// PostSignOut godoc
+// @Summary       Выход из аккаунта
+// @Tags         auth
+// @Produce      json
+// @Success      200    {object} PostSignOutOut      "Успешный выход"
+// @Failure      401    {object} echo.HTTPError      "Пользователь не авторизован"
+// @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
+// @Router       /v1/auth/sign-out [post]
+func (h *Handlers) PostSignOut(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	user, ok := c.Get("user").(*jwt.Token)
+	if !ok || user == nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
+	}
+
+	claims, ok := user.Claims.(*JwtCustomClaims)
+	if !ok || claims.Email == "" {
+		return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
+	}
+
+	err := h.authGetter.SignOut(ctx, dto.SignOutOpts{
+		Email: claims.Email,
+	})
+	if err != nil {
+		h.logger.WithError(err).Warning("sign out failed")
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
+	}
+
+	c.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
+	})
+
+	return c.JSON(http.StatusOK, PostSignOutOut{
+		Message: "signed out",
+	})
 }

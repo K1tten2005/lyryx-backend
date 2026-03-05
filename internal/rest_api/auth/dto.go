@@ -18,3 +18,7 @@ type PostSignInIn struct {
 type PostSignInOut struct {
 	AccessToken string `json:"access_token"`
 }
+
+type PostSignOutOut struct {
+	Message string `json:"message"`
+}
