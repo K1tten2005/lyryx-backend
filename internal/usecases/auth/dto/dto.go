@@ -7,10 +7,11 @@ type SignUpOpts struct {
 }
 
 type UserInfo struct {
-	UserID   int
-	Email    string
-	Username string
-	Role     string
+	UserID          int
+	Email           string
+	Username        string
+	ReputationScore int
+	Role            string
 }
 
 type SignInOpts struct {

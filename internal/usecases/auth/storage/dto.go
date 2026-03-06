@@ -7,13 +7,14 @@ type SignUpFilter struct {
 }
 
 type UserInfo struct {
-	UserID     int
-	Email      string
-	Username   string
-	Role       string
+	UserID          int
+	Email           string
+	Username        string
+	Role            string
+	ReputationScore int
 }
 
 type SetNewRefreshTokenFilter struct {
-	Email    string
+	Email        string
 	RefreshToken string
 }

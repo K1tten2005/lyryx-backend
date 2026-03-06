@@ -42,6 +42,7 @@ type storage interface {
 	GetUserInfoByEmail(ctx context.Context, email string) (dto.UserInfo, error)
 	SetNewRefreshToken(ctx context.Context, opts dto.SetNewRefreshTokenOpts) error
 	SignOut(ctx context.Context, opts dto.SignOutOpts) error
+	GetUserByRefreshToken(ctx context.Context, refreshToken string) (dto.UserInfo, error)
 }
 
 type Usecase struct {
@@ -111,11 +112,19 @@ func (u *Usecase) SetNewRefreshToken(ctx context.Context, opts dto.SetNewRefresh
 	return nil
 }
 
-func (u *Usecase) SignOut(ctx context.Context, opts dto.SignOutOpts) error {
+func (u *Usecase) PostSignOut(ctx context.Context, opts dto.SignOutOpts) error {
 	err := u.storage.SignOut(ctx, opts)
 	if err != nil {
-		return fmt.Errorf("sign out: %v", err)
+		return fmt.Errorf("post sign out: %v", err)
 	}
 
 	return nil
+}
+
+func (u *Usecase) GetUserByRefreshToken(ctx context.Context, refreshToken string) (dto.UserInfo, error) {
+	userInfo, err := u.storage.GetUserByRefreshToken(ctx, refreshToken)
+	if err != nil {
+		return dto.UserInfo{}, fmt.Errorf("get user by refresh token: %v", err)
+	}
+	return userInfo, nil
 }

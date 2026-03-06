@@ -75,6 +75,7 @@ func (s *Storage) GetUserInfoByEmail(_ context.Context, email string) (UserInfo,
 	query := `SELECT
 				id,
 				username,
+				reputation_score,
 				role
 			FROM users
 			WHERE email = $1;
@@ -85,7 +86,7 @@ func (s *Storage) GetUserInfoByEmail(_ context.Context, email string) (UserInfo,
 
 	row := s.db.QueryRow(query, email)
 
-	err := row.Scan(&userInfo.UserID, &userInfo.Username, &userInfo.Role)
+	err := row.Scan(&userInfo.UserID, &userInfo.Username, &userInfo.ReputationScore, &userInfo.Role)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return UserInfo{}, fmt.Errorf("failed to find user: %w", ErrUserDoesntExist)
@@ -108,24 +109,24 @@ func (s *Storage) SetNewRefreshToken(_ context.Context, filter SetNewRefreshToke
 	return nil
 }
 
-func (s *Storage) SignOut(_ context.Context, email string) error {
-	query := `UPDATE users
-				SET refresh_token = NULL
-				WHERE email = $1;`
+func (s *Storage) GetUserByRefreshToken(_ context.Context, refreshToken string) (UserInfo, error) {
+	query := `SELECT
+				id,
+				email,
+				username,
+				role,
+				reputation_score
+			FROM users
+          	WHERE refresh_token = $1;`
 
-	result, err := s.db.Exec(query, email)
+	row := s.db.QueryRow(query, refreshToken)
+
+	var userInfo UserInfo
+
+	err := row.Scan(&userInfo.UserID, &userInfo.Email, &userInfo.Username, &userInfo.Role, &userInfo.ReputationScore)
 	if err != nil {
-		return fmt.Errorf("failed to clear refresh token: %v", err)
+		return UserInfo{}, fmt.Errorf("failed to get user: %v", err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to inspect affected rows: %v", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("sign out failed: %w", ErrUserDoesntExist)
-	}
-
-	return nil
+	return userInfo, nil
 }
