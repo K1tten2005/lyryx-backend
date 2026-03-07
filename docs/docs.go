@@ -15,6 +15,37 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/v1/auth/refresh": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Проверка refresh токена",
+                "responses": {
+                    "200": {
+                        "description": "Успешное обновление авторизованности",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_auth.PostRefreshTokenOut"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/auth/sign-in": {
             "post": {
                 "consumes": [
@@ -53,6 +84,34 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Информация не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/sign-out": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Выход из аккаунта",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
                         "schema": {
                             "$ref": "#/definitions/echo.HTTPError"
                         }
@@ -122,6 +181,85 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/v1/user/me": {
+            "get": {
+                "description": "Возвращает полную информацию о профиле текущего пользователя, идентифицированного по access_token.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Получение данных своего профиля.",
+                "responses": {
+                    "200": {
+                        "description": "Успешный ответ с профилем пользователя",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_user.GetUserMeOut"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не аутентифицирован",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/user/{id}": {
+            "get": {
+                "description": "Возвращает полную информацию о профиле пользователя по его id.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Получение данных пользователя по его id.",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешный ответ с профилем пользователя",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_user.GetUserByIDOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Пользователь не аутентифицирован",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -129,6 +267,14 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "message": {}
+            }
+        },
+        "internal_rest_api_auth.PostRefreshTokenOut": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                }
             }
         },
         "internal_rest_api_auth.PostSignInIn": {
@@ -177,6 +323,46 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "access_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_user.GetUserByIDOut": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "reputation_score": {
+                    "type": "integer"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_user.GetUserMeOut": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "reputation_score": {
+                    "type": "integer"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "username": {
                     "type": "string"
                 }
             }

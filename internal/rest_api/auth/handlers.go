@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	accessTokenExp  = time.Hour * 24
+	accessTokenExp  = time.Minute * 15
 	refreshTokenExp = time.Hour * 24 * 30
 )
 
@@ -73,11 +73,11 @@ func (h *Handlers) RegisterHandlers(e *echo.Echo, authMiddleware echo.Middleware
 	public := e.Group("")
 	public.POST("/v1/auth/sign-up", h.PostSignUp)
 	public.POST("/v1/auth/sign-in", h.PostSignIn)
+	public.POST("/v1/auth/refresh", h.PostRefreshToken)
 
 	private := e.Group("")
 	private.Use(authMiddleware)
 	private.POST("/v1/auth/sign-out", h.PostSignOut)
-	private.POST("/v1/auth/refresh", h.PostRefreshToken)
 }
 
 func generateTokens(userInfo *dto.UserInfo, jwtSecret []byte) (
@@ -88,13 +88,16 @@ func generateTokens(userInfo *dto.UserInfo, jwtSecret []byte) (
 	accessClaims := &JwtCustomClaims{
 		UserID: userInfo.UserID,
 		Email:  userInfo.Email,
+		Role:   userInfo.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(accessTokenExp)),
 		},
 	}
 
 	refreshClaims := &JwtCustomClaims{
-		Email: userInfo.Email,
+		UserID: userInfo.UserID,
+		Email:  userInfo.Email,
+		Role:   userInfo.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(refreshTokenExp)),
 		},
@@ -161,6 +164,12 @@ func (h *Handlers) PostSignUp(c echo.Context) error {
 	signedAccessToken, signedRefreshToken, err := generateTokens(&userInfo, h.jwtSecret)
 	if err != nil {
 		h.logger.WithError(err).Warning("generate tokens failed")
+		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": "internal server error"})
+	}
+
+	err = h.authGetter.SetNewRefreshToken(ctx, setNewRefreshTokenToOpts(userInfo.Email, signedRefreshToken))
+	if err != nil {
+		h.logger.WithError(err).Warning("set new refresh_token failed")
 		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": "internal server error"})
 	}
 
@@ -297,7 +306,7 @@ func setNewRefreshTokenToOpts(email, refreshToken string) dto.SetNewRefreshToken
 // @Summary      Выход из аккаунта
 // @Tags         auth
 // @Produce      json
-// @Success      200    {object} PostSignOutOut      "Успешный выход"
+// @Success      200    
 // @Failure      401    {object} echo.HTTPError      "Пользователь не авторизован"
 // @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
 // @Router       /v1/auth/sign-out [post]
@@ -345,7 +354,7 @@ func (h *Handlers) PostRefreshToken(c echo.Context) error {
 	refreshTokenCookie, err := c.Cookie("refresh_token")
 	if err != nil {
 		h.logger.WithError(err).Warning("no cookie")
-		return echo.NewHTTPError(http.StatusUnauthorized, echo.Map{"error": "no cookie"})
+		return echo.NewHTTPError(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
 	}
 
 	refreshToken := refreshTokenCookie.Value
@@ -358,13 +367,13 @@ func (h *Handlers) PostRefreshToken(c echo.Context) error {
 	// 3. Проверка токена на валидность.
 	if err != nil || token == nil || !token.Valid {
 		h.logger.Warning("invalid token")
-		return echo.NewHTTPError(http.StatusUnauthorized, echo.Map{"error": "invalid token"})
+		return echo.NewHTTPError(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
 	}
 
 	// 4. Проверка что есть юзер с таким токеном.
 	userInfo, err := h.authGetter.GetUserByRefreshToken(ctx, refreshToken)
 	if err != nil {
-		h.logger.WithError(err).Warning("")
+		h.logger.WithError(err).Warning("failed to get user by refresh token")
 		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": "internal server error"})
 	}
 

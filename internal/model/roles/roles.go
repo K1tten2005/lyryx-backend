@@ -1,6 +1,15 @@
 package roles
 
+type Role string
+
 const (
-	RoleAdmin  = 100
-	RoleEditor = 50
+	RoleUser      Role = "user"
+	RoleModerator Role = "moderator"
+	RoleAdmin     Role = "admin"
 )
+
+var RoleLevel = map[Role]int{
+	RoleUser:      100,
+	RoleModerator: 200,
+	RoleAdmin:     300,
+}

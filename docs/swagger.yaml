@@ -4,6 +4,11 @@ definitions:
     properties:
       message: {}
     type: object
+  internal_rest_api_auth.PostRefreshTokenOut:
+    properties:
+      access_token:
+        type: string
+    type: object
   internal_rest_api_auth.PostSignInIn:
     properties:
       email:
@@ -37,12 +42,58 @@ definitions:
       access_token:
         type: string
     type: object
+  internal_rest_api_user.GetUserByIDOut:
+    properties:
+      email:
+        type: string
+      reputation_score:
+        type: integer
+      role:
+        type: string
+      user_id:
+        type: integer
+      username:
+        type: string
+    type: object
+  internal_rest_api_user.GetUserMeOut:
+    properties:
+      email:
+        type: string
+      reputation_score:
+        type: integer
+      role:
+        type: string
+      user_id:
+        type: integer
+      username:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
   title: lyryx API
   version: "1.0"
 paths:
+  /v1/auth/refresh:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешное обновление авторизованности
+          schema:
+            $ref: '#/definitions/internal_rest_api_auth.PostRefreshTokenOut'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      summary: Проверка refresh токена
+      tags:
+      - auth
   /v1/auth/sign-in:
     post:
       consumes:
@@ -74,6 +125,24 @@ paths:
           schema:
             $ref: '#/definitions/echo.HTTPError'
       summary: Авторизация пользователя
+      tags:
+      - auth
+  /v1/auth/sign-out:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      summary: Выход из аккаунта
       tags:
       - auth
   /v1/auth/sign-up:
@@ -113,4 +182,57 @@ paths:
       summary: Регистрация пользователя
       tags:
       - auth
+  /v1/user/{id}:
+    get:
+      description: Возвращает полную информацию о профиле пользователя по его id.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ с профилем пользователя
+          schema:
+            $ref: '#/definitions/internal_rest_api_user.GetUserByIDOut'
+        "400":
+          description: Пользователь не аутентифицирован
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "404":
+          description: Пользователь не найден
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      summary: Получение данных пользователя по его id.
+      tags:
+      - user
+  /v1/user/me:
+    get:
+      description: Возвращает полную информацию о профиле текущего пользователя, идентифицированного
+        по access_token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ с профилем пользователя
+          schema:
+            $ref: '#/definitions/internal_rest_api_user.GetUserMeOut'
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      summary: Получение данных своего профиля.
+      tags:
+      - user
 swagger: "2.0"

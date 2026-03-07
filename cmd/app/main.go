@@ -3,11 +3,16 @@ package main
 import (
 	"github.com/K1tten2005/lyryx-backend/internal/config"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api"
+	"github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
 	authHandlers "github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/utils"
 	authUsecase "github.com/K1tten2005/lyryx-backend/internal/usecases/auth"
 	authStorage "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/storage"
 	authWrappers "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/wrappers"
+	userHandlers "github.com/K1tten2005/lyryx-backend/internal/rest_api/user"
+	userUsecase "github.com/K1tten2005/lyryx-backend/internal/usecases/user"
+	userWrappers "github.com/K1tten2005/lyryx-backend/internal/usecases/user/wrappers"
+	userStorage "github.com/K1tten2005/lyryx-backend/internal/usecases/user/storage"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jmoiron/sqlx"
@@ -66,11 +71,20 @@ func main() {
 	// Validator.
 	echoHandler.Validator = utils.NewHTTPRequestValidator()
 
+	// Claims getter.
+	claimsGetter := auth.ClaimsGetter{}
+
 	authStorage := authStorage.NewStorage(db)
 	authWrappers := authWrappers.NewStorage(authStorage)
 	authUsecase := authUsecase.NewUsecase(authWrappers, &authUsecase.BcryptHasher{})
 	authHandlers := authHandlers.New(authUsecase, []byte(cfg.JWTSecret), logger)
 	authHandlers.RegisterHandlers(echoHandler, authMiddleware)
+
+	userStorage := userStorage.NewStorage(db, logger)
+	userWrappers := userWrappers.NewStorage(userStorage)
+	userUsecase := userUsecase.NewUsecase(userWrappers, logger)
+	userHandlers := userHandlers.NewUserHandlers(userUsecase, claimsGetter, logger)
+	userHandlers.RegisterHandlers(echoHandler, authMiddleware)
 
 	echoHandler.Use(echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
 		AllowOrigins: []string{"*"}, // На этапе разработки можно всё
