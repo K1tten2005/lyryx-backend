@@ -23,7 +23,7 @@ import (
 const maxAvatarSizeBytes int64 = 5 * 1024 * 1024
 
 var (
-	ErrInvalidAvatarType = errors.New("avatar must be a valid png/jpeg/gif image")
+	ErrInvalidAvatarType = errors.New("avatar must be a valid png/jpeg image")
 	ErrAvatarTooLarge    = errors.New("avatar file is too large (max 5MB)")
 )
 
@@ -44,22 +44,22 @@ func NewMinIOAvatarStorage(client *minio.Client, bucket string, publicBaseURL st
 func (s *MinIOAvatarStorage) EnsureBucketPublic(ctx context.Context) error {
 	exists, err := s.client.BucketExists(ctx, s.bucket)
 	if err != nil {
-		return fmt.Errorf("check bucket exists: %w", err)
+		return fmt.Errorf("check bucket exists: %v", err)
 	}
 
 	if !exists {
 		if err := s.client.MakeBucket(ctx, s.bucket, minio.MakeBucketOptions{}); err != nil {
-			return fmt.Errorf("make bucket: %w", err)
+			return fmt.Errorf("make bucket: %v", err)
 		}
 	}
 
 	policy, err := buildPublicReadPolicy(s.bucket)
 	if err != nil {
-		return fmt.Errorf("build public read policy: %w", err)
+		return fmt.Errorf("build public read policy: %v", err)
 	}
 
 	if err := s.client.SetBucketPolicy(ctx, s.bucket, policy); err != nil {
-		return fmt.Errorf("set bucket policy: %w", err)
+		return fmt.Errorf("set bucket policy: %v", err)
 	}
 
 	return nil
@@ -68,17 +68,17 @@ func (s *MinIOAvatarStorage) EnsureBucketPublic(ctx context.Context) error {
 func (s *MinIOAvatarStorage) UploadAvatar(ctx context.Context, userID int, avatarFile *multipart.FileHeader) (string, error) {
 	src, err := avatarFile.Open()
 	if err != nil {
-		return "", fmt.Errorf("open avatar file: %w", err)
+		return "", fmt.Errorf("open avatar file: %v", err)
 	}
 	defer src.Close()
 
 	avatarBytes, err := io.ReadAll(io.LimitReader(src, maxAvatarSizeBytes+1))
 	if err != nil {
-		return "", fmt.Errorf("read avatar file: %w", err)
+		return "", fmt.Errorf("read avatar file: %v", err)
 	}
 
 	if int64(len(avatarBytes)) > maxAvatarSizeBytes {
-		return "", ErrAvatarTooLarge
+		return "", fmt.Errorf("upload avatar: %w", ErrAvatarTooLarge)
 	}
 
 	contentType, extension, err := detectAvatarFormat(avatarBytes)
@@ -88,7 +88,7 @@ func (s *MinIOAvatarStorage) UploadAvatar(ctx context.Context, userID int, avata
 
 	objectName, err := buildAvatarObjectName(userID, extension)
 	if err != nil {
-		return "", fmt.Errorf("build avatar object name: %w", err)
+		return "", fmt.Errorf("build avatar object name: %v", err)
 	}
 
 	_, err = s.client.PutObject(
@@ -109,7 +109,7 @@ func (s *MinIOAvatarStorage) UploadAvatar(ctx context.Context, userID int, avata
 
 func detectAvatarFormat(fileBytes []byte) (string, string, error) {
 	if _, _, err := image.DecodeConfig(bytes.NewReader(fileBytes)); err != nil {
-		return "", "", ErrInvalidAvatarType
+		return "", "", fmt.Errorf("decode avatar format: %w", ErrInvalidAvatarType)
 	}
 
 	contentType := http.DetectContentType(fileBytes)
@@ -118,17 +118,15 @@ func detectAvatarFormat(fileBytes []byte) (string, string, error) {
 		return contentType, ".png", nil
 	case "image/jpeg":
 		return contentType, ".jpg", nil
-	case "image/webp":
-		return contentType, ".gif", nil
 	}
 
-	return "", "", ErrInvalidAvatarType
+	return "", "", fmt.Errorf("decode avatar format: %w", ErrInvalidAvatarType)
 }
 
 func buildAvatarObjectName(userID int, ext string) (string, error) {
 	randomBytes := make([]byte, 8)
 	if _, err := rand.Read(randomBytes); err != nil {
-		return "", fmt.Errorf("random read: %w", err)
+		return "", fmt.Errorf("random read: %v", err)
 	}
 
 	randomPart := hex.EncodeToString(randomBytes)
@@ -162,7 +160,7 @@ func buildPublicReadPolicy(bucket string) (string, error) {
 
 	policyBytes, err := json.Marshal(policy)
 	if err != nil {
-		return "", fmt.Errorf("marshal policy: %w", err)
+		return "", fmt.Errorf("marshal policy: %v", err)
 	}
 
 	return string(policyBytes), nil
