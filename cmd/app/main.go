@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+
 	"github.com/K1tten2005/lyryx-backend/internal/config"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
@@ -100,6 +102,11 @@ func main() {
 	}
 
 	avatarStorage := userHandlers.NewMinIOAvatarStorage(minioClient, cfg.MinIOBucket, cfg.MinIOPublicBaseURL)
+	if err := avatarStorage.EnsureBucketPublic(context.Background()); err != nil {
+		log.Errorf("failed ensure minio bucket public policy: %v", err)
+		return
+	}
+
 	userHandlers := userHandlers.NewUserHandlers(userUsecase, claimsGetter, avatarStorage, logger)
 	userHandlers.RegisterHandlers(echoHandler, authMiddleware)
 
