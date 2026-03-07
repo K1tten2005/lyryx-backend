@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"image"
@@ -38,6 +39,30 @@ func NewMinIOAvatarStorage(client *minio.Client, bucket string, publicBaseURL st
 		bucket:        bucket,
 		publicBaseURL: strings.TrimRight(publicBaseURL, "/"),
 	}
+}
+
+func (s *MinIOAvatarStorage) EnsureBucketPublic(ctx context.Context) error {
+	exists, err := s.client.BucketExists(ctx, s.bucket)
+	if err != nil {
+		return fmt.Errorf("check bucket exists: %w", err)
+	}
+
+	if !exists {
+		if err := s.client.MakeBucket(ctx, s.bucket, minio.MakeBucketOptions{}); err != nil {
+			return fmt.Errorf("make bucket: %w", err)
+		}
+	}
+
+	policy, err := buildPublicReadPolicy(s.bucket)
+	if err != nil {
+		return fmt.Errorf("build public read policy: %w", err)
+	}
+
+	if err := s.client.SetBucketPolicy(ctx, s.bucket, policy); err != nil {
+		return fmt.Errorf("set bucket policy: %w", err)
+	}
+
+	return nil
 }
 
 func (s *MinIOAvatarStorage) UploadAvatar(ctx context.Context, userID int, avatarFile *multipart.FileHeader) (string, error) {
@@ -108,4 +133,37 @@ func buildAvatarObjectName(userID int, ext string) (string, error) {
 
 	randomPart := hex.EncodeToString(randomBytes)
 	return fmt.Sprintf("%d/%d_%s%s", userID, time.Now().Unix(), randomPart, ext), nil
+}
+
+func buildPublicReadPolicy(bucket string) (string, error) {
+	type statement struct {
+		Action    []string `json:"Action"`
+		Effect    string   `json:"Effect"`
+		Principal string   `json:"Principal"`
+		Resource  []string `json:"Resource"`
+		Sid       string   `json:"Sid"`
+	}
+
+	type policyDocument struct {
+		Version   string      `json:"Version"`
+		Statement []statement `json:"Statement"`
+	}
+
+	policy := policyDocument{
+		Version: "2012-10-17",
+		Statement: []statement{{
+			Sid:       "PublicReadForAvatars",
+			Effect:    "Allow",
+			Principal: "*",
+			Action:    []string{"s3:GetObject"},
+			Resource:  []string{fmt.Sprintf("arn:aws:s3:::%s/*", bucket)},
+		}},
+	}
+
+	policyBytes, err := json.Marshal(policy)
+	if err != nil {
+		return "", fmt.Errorf("marshal policy: %w", err)
+	}
+
+	return string(policyBytes), nil
 }
