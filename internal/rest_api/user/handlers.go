@@ -3,9 +3,12 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
+	"github.com/K1tten2005/lyryx-backend/internal/rest_api/utils/user_validation"
 	usecase "github.com/K1tten2005/lyryx-backend/internal/usecases/user"
 	"github.com/K1tten2005/lyryx-backend/internal/usecases/user/dto"
 	"github.com/labstack/echo/v4"
@@ -14,6 +17,12 @@ import (
 
 type userUsecase interface {
 	GetUserByID(ctx context.Context, userID int) (dto.User, error)
+	PatchUpdateUser(ctx context.Context, opts dto.PatchUpdateUserOpts) error
+	PatchUpdateAvatar(ctx context.Context, opts dto.PatchUpdateAvatarOpts) error
+}
+
+type avatarUploadService interface {
+	CreatePresignedUploadURL(ctx context.Context, userID int, ext string, contentType string) (UploadURLInfo, error)
 }
 
 type claimsGetter interface {
@@ -21,8 +30,9 @@ type claimsGetter interface {
 }
 
 type Handlers struct {
-	userUsecase  userUsecase
-	claimsGetter claimsGetter
+	userUsecase         userUsecase
+	claimsGetter        claimsGetter
+	avatarUploadPresign avatarUploadService
 
 	logger *logrus.Logger
 }
@@ -30,12 +40,14 @@ type Handlers struct {
 func NewUserHandlers(
 	userUsecase userUsecase,
 	claimsGetter claimsGetter,
+	avatarUploadPresign avatarUploadService,
 	logger *logrus.Logger,
 ) *Handlers {
 	return &Handlers{
-		userUsecase:  userUsecase,
-		claimsGetter: claimsGetter,
-		logger:       logger,
+		userUsecase:         userUsecase,
+		claimsGetter:        claimsGetter,
+		avatarUploadPresign: avatarUploadPresign,
+		logger:              logger,
 	}
 }
 
@@ -46,6 +58,9 @@ func (h *Handlers) RegisterHandlers(e *echo.Echo, authMiddleware echo.Middleware
 	private := e.Group("")
 	private.Use(authMiddleware)
 	private.GET("/v1/user/me", h.GetUserMe)
+	private.PATCH("/v1/user/me", h.PatchUpdateUser)
+	private.PATCH("/v1/user/me/avatar", h.PatchUpdateAvatar)
+	private.POST("/v1/user/me/avatar/upload-url", h.PostAvatarUploadURL)
 }
 
 // GetUserMe godoc
@@ -89,6 +104,8 @@ func getUserMeToOut(user dto.User) GetUserMeOut {
 		UserID:          user.UserID,
 		Email:           user.Email,
 		Username:        user.Username,
+		Bio:             user.Bio,
+		AvatarURL:       user.AvatarURL,
 		ReputationScore: user.ReputationScore,
 		Role:            user.Role,
 	}
@@ -137,7 +154,213 @@ func getUserByIDToOut(user dto.User) GetUserByIDOut {
 		UserID:          user.UserID,
 		Email:           user.Email,
 		Username:        user.Username,
+		Bio:             user.Bio,
+		AvatarURL:       user.AvatarURL,
 		ReputationScore: user.ReputationScore,
 		Role:            user.Role,
 	}
+}
+
+// PatchUpdateUser godoc
+// @Summary      Частичное обновление профиля пользователя
+// @Description  Обновляет email, username, bio или password текущего пользователя. Достаточно передать только нужные поля.
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Param        request body PatchUpdateUserIn true "Параметры обновления профиля"
+// @Success      204
+// @Failure      400    {object} echo.HTTPError      "Некорректный запрос"
+// @Failure      401    {object} echo.HTTPError      "Пользователь не аутентифицирован"
+// @Failure      404    {object} echo.HTTPError      "Пользователь не найден"
+// @Failure      409    {object} echo.HTTPError      "Email или username уже заняты"
+// @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
+// @Router       /v1/user/me [patch]
+func (h *Handlers) PatchUpdateUser(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	claims, err := h.claimsGetter.GetClaims(c)
+	if err != nil {
+		h.logger.WithError(err).Warning("get claims failed")
+		return echo.NewHTTPError(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
+	}
+
+	req := new(PatchUpdateUserIn)
+	if err := c.Bind(req); err != nil {
+		h.logger.WithError(err).Warning("bind failed")
+		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
+	}
+
+	opts, err := patchUpdateUserToOpts(claims.UserID, req)
+	if err != nil {
+		h.logger.WithError(err).Warning("validate failed")
+		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": err.Error()})
+	}
+
+	err = h.userUsecase.PatchUpdateUser(ctx, opts)
+	if err != nil {
+		h.logger.WithError(err).Warning("patch update user failed")
+		if errors.Is(err, usecase.ErrUserNotFound) {
+			return echo.NewHTTPError(http.StatusNotFound, echo.Map{"error": "user not found"})
+		}
+		if errors.Is(err, usecase.ErrEmailAlreadyExists) {
+			return echo.NewHTTPError(http.StatusConflict, echo.Map{"error": "this email is already taken"})
+		}
+		if errors.Is(err, usecase.ErrUsernameTaken) {
+			return echo.NewHTTPError(http.StatusConflict, echo.Map{"error": "this username is already taken"})
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": "internal server error"})
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
+func patchUpdateUserToOpts(userID int, req *PatchUpdateUserIn) (dto.PatchUpdateUserOpts, error) {
+	if req.Email == nil && req.Username == nil && req.Bio == nil && req.Password == nil {
+		return dto.PatchUpdateUserOpts{}, errors.New("at least one field must be provided")
+	}
+
+	var email *string
+	if req.Email != nil {
+		normalizedEmail := strings.ToLower(strings.TrimSpace(*req.Email))
+		if err := user_validation.ValidateEmail(normalizedEmail); err != nil {
+			return dto.PatchUpdateUserOpts{}, fmt.Errorf("email validation failed: %v", err)
+		}
+		email = &normalizedEmail
+	}
+
+	var username *string
+	if req.Username != nil {
+		normalizedUsername := strings.TrimSpace(*req.Username)
+		if err := user_validation.ValidateUsername(normalizedUsername); err != nil {
+			return dto.PatchUpdateUserOpts{}, fmt.Errorf("username validation failed: %v", err)
+		}
+		username = &normalizedUsername
+	}
+
+	var bio *string
+	if req.Bio != nil {
+		normalizedBio := strings.TrimSpace(*req.Bio)
+		bio = &normalizedBio
+	}
+
+	var password *string
+	if req.Password != nil {
+		if err := user_validation.ValidatePassword(*req.Password); err != nil {
+			return dto.PatchUpdateUserOpts{}, fmt.Errorf("password validation failed: %v", err)
+		}
+		password = req.Password
+	}
+
+	return dto.PatchUpdateUserOpts{
+		UserID:   userID,
+		Email:    email,
+		Username: username,
+		Bio:      bio,
+		Password: password,
+	}, nil
+}
+
+// PatchUpdateAvatar godoc
+// @Summary      Обновление аватарки пользователя
+// @Description  Обновляет ссылку на аватар текущего пользователя.
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Param        request body PatchUpdateAvatarIn true "Параметры обновления аватарки"
+// @Success      204
+// @Failure      400    {object} echo.HTTPError      "Некорректный запрос"
+// @Failure      401    {object} echo.HTTPError      "Пользователь не аутентифицирован"
+// @Failure      404    {object} echo.HTTPError      "Пользователь не найден"
+// @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
+// @Router       /v1/user/me/avatar [patch]
+func (h *Handlers) PatchUpdateAvatar(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	claims, err := h.claimsGetter.GetClaims(c)
+	if err != nil {
+		h.logger.WithError(err).Warning("get claims failed")
+		return echo.NewHTTPError(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
+	}
+
+	req := new(PatchUpdateAvatarIn)
+	if err := c.Bind(req); err != nil {
+		h.logger.WithError(err).Warning("bind failed")
+		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
+	}
+
+	if err := c.Validate(req); err != nil {
+		h.logger.WithError(err).Warning("validate failed")
+		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
+	}
+
+	err = h.userUsecase.PatchUpdateAvatar(ctx, dto.PatchUpdateAvatarOpts{
+		UserID:    claims.UserID,
+		AvatarURL: req.AvatarURL,
+	})
+	if err != nil {
+		h.logger.WithError(err).Warning("patch update avatar failed")
+		if errors.Is(err, usecase.ErrUserNotFound) {
+			return echo.NewHTTPError(http.StatusNotFound, echo.Map{"error": "user not found"})
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": "internal server error"})
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
+// PostAvatarUploadURL godoc
+// @Summary      Получение presigned URL для загрузки аватарки
+// @Description  Возвращает одноразовый URL (PUT) для прямой загрузки файла в MinIO/S3 и итоговый avatar_url для сохранения в профиле.
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Param        request body PostAvatarUploadURLIn true "Параметры файла"
+// @Success      200    {object} PostAvatarUploadURLOut
+// @Failure      400    {object} echo.HTTPError      "Некорректный запрос"
+// @Failure      401    {object} echo.HTTPError      "Пользователь не аутентифицирован"
+// @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
+// @Router       /v1/user/me/avatar/upload-url [post]
+func (h *Handlers) PostAvatarUploadURL(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	claims, err := h.claimsGetter.GetClaims(c)
+	if err != nil {
+		h.logger.WithError(err).Warning("get claims failed")
+		return echo.NewHTTPError(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
+	}
+
+	req := new(PostAvatarUploadURLIn)
+	if err := c.Bind(req); err != nil {
+		h.logger.WithError(err).Warning("bind failed")
+		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
+	}
+
+	if err := c.Validate(req); err != nil {
+		h.logger.WithError(err).Warning("validate failed")
+		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
+	}
+
+	if !strings.HasPrefix(strings.ToLower(req.ContentType), "image/") {
+		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": "content_type must be image/*"})
+	}
+
+	if h.avatarUploadPresign == nil {
+		h.logger.Warning("avatar upload service is not configured")
+		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": "avatar upload service is not configured"})
+	}
+
+	uploadURLInfo, err := h.avatarUploadPresign.CreatePresignedUploadURL(ctx, claims.UserID, req.FileExt, req.ContentType)
+	if err != nil {
+		h.logger.WithError(err).Warning("create presigned upload url failed")
+		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": "internal server error"})
+	}
+
+	return c.JSON(http.StatusOK, PostAvatarUploadURLOut{
+		UploadURL:    uploadURLInfo.UploadURL,
+		AvatarURL:    uploadURLInfo.AvatarURL,
+		ObjectKey:    uploadURLInfo.ObjectKey,
+		Method:       uploadURLInfo.Method,
+		ExpiresInSec: uploadURLInfo.ExpiresInSec,
+		Headers:      uploadURLInfo.Headers,
+	})
 }
