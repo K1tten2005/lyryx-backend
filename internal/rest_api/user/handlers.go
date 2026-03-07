@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 	"strings"
 
@@ -25,9 +26,14 @@ type claimsGetter interface {
 	GetClaims(c echo.Context) (*auth.JwtCustomClaims, error)
 }
 
+type avatarStorage interface {
+	UploadAvatar(ctx context.Context, userID int, avatarFile *multipart.FileHeader) (string, error)
+}
+
 type Handlers struct {
 	userUsecase  userUsecase
 	claimsGetter claimsGetter
+	avatarStore  avatarStorage
 
 	logger *logrus.Logger
 }
@@ -35,11 +41,13 @@ type Handlers struct {
 func NewUserHandlers(
 	userUsecase userUsecase,
 	claimsGetter claimsGetter,
+	avatarStore avatarStorage,
 	logger *logrus.Logger,
 ) *Handlers {
 	return &Handlers{
 		userUsecase:  userUsecase,
 		claimsGetter: claimsGetter,
+		avatarStore:  avatarStore,
 		logger:       logger,
 	}
 }
@@ -254,11 +262,11 @@ func patchUpdateUserToOpts(userID int, req *PatchUpdateUserIn) (dto.PatchUpdateU
 
 // PatchUpdateAvatar godoc
 // @Summary      Обновление аватарки пользователя
-// @Description  Обновляет ссылку на аватар текущего пользователя.
+// @Description  Принимает avatar в multipart/form-data, валидирует изображение, загружает в MinIO и обновляет ссылку на аватар текущего пользователя.
 // @Tags         user
-// @Accept       json
+// @Accept       mpfd
 // @Produce      json
-// @Param        request body PatchUpdateAvatarIn true "Параметры обновления аватарки"
+// @Param        avatar formData file true "Файл аватарки (png/jpeg/gif)"
 // @Success      204
 // @Failure      400    {object} echo.HTTPError      "Некорректный запрос"
 // @Failure      401    {object} echo.HTTPError      "Пользователь не аутентифицирован"
@@ -274,20 +282,27 @@ func (h *Handlers) PatchUpdateAvatar(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
 	}
 
-	req := new(PatchUpdateAvatarIn)
-	if err := c.Bind(req); err != nil {
-		h.logger.WithError(err).Warning("bind failed")
-		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
+	avatarFile, err := c.FormFile("avatar")
+	if err != nil {
+		h.logger.WithError(err).Warning("get avatar file failed")
+		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": "avatar file is required"})
 	}
 
-	if err := c.Validate(req); err != nil {
-		h.logger.WithError(err).Warning("validate failed")
-		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
+	avatarURL, err := h.avatarStore.UploadAvatar(ctx, claims.UserID, avatarFile)
+	if err != nil {
+		h.logger.WithError(err).Warning("upload avatar failed")
+		if errors.Is(err, ErrAvatarTooLarge) {
+			return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": err.Error()})
+		}
+		if errors.Is(err, ErrInvalidAvatarType) {
+			return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": err.Error()})
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": "internal server error"})
 	}
 
 	err = h.userUsecase.PatchUpdateAvatar(ctx, dto.PatchUpdateAvatarOpts{
 		UserID:    claims.UserID,
-		AvatarURL: req.AvatarURL,
+		AvatarURL: avatarURL,
 	})
 	if err != nil {
 		h.logger.WithError(err).Warning("patch update avatar failed")

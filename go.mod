@@ -11,6 +11,7 @@ require (
 	github.com/labstack/echo-jwt/v4 v4.4.0
 	github.com/labstack/echo/v4 v4.15.0
 	github.com/lib/pq v1.11.2
+	github.com/minio/minio-go/v7 v7.0.95
 	github.com/sirupsen/logrus v1.9.4
 	github.com/swaggo/swag v1.16.6
 	golang.org/x/crypto v0.46.0

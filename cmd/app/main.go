@@ -5,14 +5,14 @@ import (
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
 	authHandlers "github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
+	userHandlers "github.com/K1tten2005/lyryx-backend/internal/rest_api/user"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/utils"
 	authUsecase "github.com/K1tten2005/lyryx-backend/internal/usecases/auth"
 	authStorage "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/storage"
 	authWrappers "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/wrappers"
-	userHandlers "github.com/K1tten2005/lyryx-backend/internal/rest_api/user"
 	userUsecase "github.com/K1tten2005/lyryx-backend/internal/usecases/user"
-	userWrappers "github.com/K1tten2005/lyryx-backend/internal/usecases/user/wrappers"
 	userStorage "github.com/K1tten2005/lyryx-backend/internal/usecases/user/storage"
+	userWrappers "github.com/K1tten2005/lyryx-backend/internal/usecases/user/wrappers"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jmoiron/sqlx"
@@ -23,6 +23,8 @@ import (
 
 	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 func init() {
@@ -43,6 +45,10 @@ func main() {
 	// Config.
 	var cfg config.Config
 	err := env.Parse(&cfg)
+	if err != nil {
+		log.Errorf("failed parse config: %v", err)
+		return
+	}
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -83,7 +89,18 @@ func main() {
 	userStorage := userStorage.NewStorage(db, logger)
 	userWrappers := userWrappers.NewStorage(userStorage)
 	userUsecase := userUsecase.NewUsecase(userWrappers, logger)
-	userHandlers := userHandlers.NewUserHandlers(userUsecase, claimsGetter, logger)
+
+	minioClient, err := minio.New(cfg.MinIOEndpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(cfg.MinIOAccessKey, cfg.MinIOSecretKey, ""),
+		Secure: cfg.MinIOUseSSL,
+	})
+	if err != nil {
+		log.Errorf("failed create minio client: %v", err)
+		return
+	}
+
+	avatarStorage := userHandlers.NewMinIOAvatarStorage(minioClient, cfg.MinIOBucket, cfg.MinIOPublicBaseURL)
+	userHandlers := userHandlers.NewUserHandlers(userUsecase, claimsGetter, avatarStorage, logger)
 	userHandlers.RegisterHandlers(echoHandler, authMiddleware)
 
 	echoHandler.Use(echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
