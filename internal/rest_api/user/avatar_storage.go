@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
@@ -73,7 +72,8 @@ func (s *MinIOAvatarStorage) UploadAvatar(ctx context.Context, userID int, avata
 		objectName,
 		bytes.NewReader(avatarBytes),
 		int64(len(avatarBytes)),
-		minio.PutObjectOptions{ContentType: contentType},
+		minio.PutObjectOptions{
+			ContentType: contentType},
 	)
 	if err != nil {
 		return "", fmt.Errorf("put object: %w", err)
@@ -93,7 +93,7 @@ func detectAvatarFormat(fileBytes []byte) (string, string, error) {
 		return contentType, ".png", nil
 	case "image/jpeg":
 		return contentType, ".jpg", nil
-	case "image/gif":
+	case "image/webp":
 		return contentType, ".gif", nil
 	}
 
@@ -107,5 +107,5 @@ func buildAvatarObjectName(userID int, ext string) (string, error) {
 	}
 
 	randomPart := hex.EncodeToString(randomBytes)
-	return fmt.Sprintf("avatars/%d/%d_%s%s", userID, time.Now().Unix(), randomPart, ext), nil
+	return fmt.Sprintf("%d/%d_%s%s", userID, time.Now().Unix(), randomPart, ext), nil
 }
