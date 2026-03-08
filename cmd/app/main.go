@@ -6,15 +6,15 @@ import (
 	"github.com/K1tten2005/lyryx-backend/internal/config"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
-	authHandlers "github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
-	userHandlers "github.com/K1tten2005/lyryx-backend/internal/rest_api/user"
+	authHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
+	userHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/user"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/utils"
-	authUsecase "github.com/K1tten2005/lyryx-backend/internal/usecases/auth"
-	authStorage "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/storage"
-	authWrappers "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/wrappers"
-	userUsecase "github.com/K1tten2005/lyryx-backend/internal/usecases/user"
-	userStorage "github.com/K1tten2005/lyryx-backend/internal/usecases/user/storage"
-	userWrappers "github.com/K1tten2005/lyryx-backend/internal/usecases/user/wrappers"
+	authUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth"
+	authStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/storage"
+	authWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/wrappers"
+	userUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/user"
+	userStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/user/storage"
+	userWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/user/wrappers"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jmoiron/sqlx"
@@ -58,40 +58,14 @@ func main() {
 		}
 	}()
 
+	// Postgres.
 	db, err := sqlx.Connect("postgres", cfg.PostgresDSN)
 	if err != nil {
 		log.Errorf("failed sqlx connect: %v", err)
 		return
 	}
 
-	authConfig := echojwt.Config{
-		NewClaimsFunc: func(_ echo.Context) jwt.Claims {
-			return new(authHandlers.JwtCustomClaims)
-		},
-		SigningKey: []byte(cfg.JWTSecret),
-	}
-
-	echoHandler := echo.New()
-
-	// Auth middleware.
-	authMiddleware := echojwt.WithConfig(authConfig)
-
-	// Validator.
-	echoHandler.Validator = utils.NewHTTPRequestValidator()
-
-	// Claims getter.
-	claimsGetter := auth.ClaimsGetter{}
-
-	authStorage := authStorage.NewStorage(db)
-	authWrappers := authWrappers.NewStorage(authStorage)
-	authUsecase := authUsecase.NewUsecase(authWrappers, &authUsecase.BcryptHasher{})
-	authHandlers := authHandlers.New(authUsecase, []byte(cfg.JWTSecret), logger)
-	authHandlers.RegisterHandlers(echoHandler, authMiddleware)
-
-	userStorage := userStorage.NewStorage(db, logger)
-	userWrappers := userWrappers.NewStorage(userStorage)
-	userUsecase := userUsecase.NewUsecase(userWrappers, logger)
-
+	// Minio.
 	minioClient, err := minio.New(cfg.MinIOEndpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.MinIOAccessKey, cfg.MinIOSecretKey, ""),
 		Secure: cfg.MinIOUseSSL,
@@ -101,13 +75,40 @@ func main() {
 		return
 	}
 
-	avatarStorage := userHandlers.NewMinIOAvatarStorage(minioClient, cfg.MinIOBucket, cfg.MinIOPublicBaseURL)
+	// Auth middleware.
+	authConfig := echojwt.Config{
+		NewClaimsFunc: func(_ echo.Context) jwt.Claims {
+			return new(authHandlersPkg.JwtCustomClaims)
+		},
+		SigningKey: []byte(cfg.JWTSecret),
+	}
+
+	authMiddleware := echojwt.WithConfig(authConfig)
+
+	echoHandler := echo.New()
+
+	// Validator.
+	echoHandler.Validator = utils.NewHTTPRequestValidator()
+
+	// Claims getter.
+	claimsGetter := auth.ClaimsGetter{}
+
+	authStorage := authStoragePkg.NewStorage(db)
+	authWrappers := authWrappersPkg.NewStorage(authStorage)
+	authUsecase := authUsecasePkg.NewUsecase(authWrappers, &authUsecasePkg.BcryptHasher{})
+	authHandlers := authHandlersPkg.New(authUsecase, []byte(cfg.JWTSecret), logger)
+	authHandlers.RegisterHandlers(echoHandler, authMiddleware)
+
+	userStorage := userStoragePkg.NewStorage(db, logger)
+	avatarStorage := userStoragePkg.NewMinIOAvatarStorage(minioClient, cfg.MinIOBucket, cfg.MinIOPublicBaseURL)
 	if err := avatarStorage.EnsureBucketPublic(context.Background()); err != nil {
 		log.Errorf("failed ensure minio bucket public policy: %v", err)
 		return
 	}
-
-	userHandlers := userHandlers.NewUserHandlers(userUsecase, claimsGetter, avatarStorage, logger)
+	userWrappers := userWrappersPkg.NewStorage(userStorage, avatarStorage)
+	avatarWrapper := userWrappersPkg.NewAvatarGetter(avatarStorage)
+	userUsecase := userUsecasePkg.NewUsecase(userWrappers, avatarWrapper, logger)
+	userHandlers := userHandlersPkg.NewUserHandlers(userUsecase, claimsGetter, logger)
 	userHandlers.RegisterHandlers(echoHandler, authMiddleware)
 
 	echoHandler.Use(echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{

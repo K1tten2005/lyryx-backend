@@ -19,7 +19,7 @@ import (
 type userUsecase interface {
 	GetUserByID(ctx context.Context, userID int) (dto.User, error)
 	PatchUpdateUser(ctx context.Context, opts dto.PatchUpdateUserOpts) error
-	PatchUpdateAvatar(ctx context.Context, opts dto.PatchUpdateAvatarOpts) error
+	PatchUpdateAvatar(ctx context.Context, opts dto.UploadAvatarOpts) error
 }
 
 type claimsGetter interface {
@@ -33,7 +33,6 @@ type avatarStorage interface {
 type Handlers struct {
 	userUsecase  userUsecase
 	claimsGetter claimsGetter
-	avatarStore  avatarStorage
 
 	logger *logrus.Logger
 }
@@ -41,13 +40,11 @@ type Handlers struct {
 func NewUserHandlers(
 	userUsecase userUsecase,
 	claimsGetter claimsGetter,
-	avatarStore avatarStorage,
 	logger *logrus.Logger,
 ) *Handlers {
 	return &Handlers{
 		userUsecase:  userUsecase,
 		claimsGetter: claimsGetter,
-		avatarStore:  avatarStore,
 		logger:       logger,
 	}
 }
@@ -288,24 +285,18 @@ func (h *Handlers) PatchUpdateAvatar(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": "avatar file is required"})
 	}
 
-	avatarURL, err := h.avatarStore.UploadAvatar(ctx, claims.UserID, avatarFile)
-	if err != nil {
-		h.logger.WithError(err).Warning("upload avatar failed")
-		if errors.Is(err, ErrAvatarTooLarge) {
-			return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": err.Error()})
-		}
-		if errors.Is(err, ErrInvalidAvatarType) {
-			return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": err.Error()})
-		}
-		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": "internal server error"})
-	}
-
-	err = h.userUsecase.PatchUpdateAvatar(ctx, dto.PatchUpdateAvatarOpts{
-		UserID:    claims.UserID,
-		AvatarURL: avatarURL,
+	err = h.userUsecase.PatchUpdateAvatar(ctx, dto.UploadAvatarOpts{
+		UserID:     claims.UserID,
+		AvatarFile: avatarFile,
 	})
 	if err != nil {
 		h.logger.WithError(err).Warning("patch update avatar failed")
+		if errors.Is(err, usecase.ErrAvatarTooLarge) {
+			return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": err.Error()})
+		}
+		if errors.Is(err, usecase.ErrInvalidAvatarType) {
+			return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": err.Error()})
+		}
 		if errors.Is(err, usecase.ErrUserNotFound) {
 			return echo.NewHTTPError(http.StatusNotFound, echo.Map{"error": "user not found"})
 		}

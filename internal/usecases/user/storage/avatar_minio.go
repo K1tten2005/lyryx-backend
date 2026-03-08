@@ -1,4 +1,4 @@
-package user
+package storage
 
 import (
 	"bytes"
@@ -12,7 +12,6 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"strings"
 	"time"
@@ -65,8 +64,8 @@ func (s *MinIOAvatarStorage) EnsureBucketPublic(ctx context.Context) error {
 	return nil
 }
 
-func (s *MinIOAvatarStorage) UploadAvatar(ctx context.Context, userID int, avatarFile *multipart.FileHeader) (string, error) {
-	src, err := avatarFile.Open()
+func (s *MinIOAvatarStorage) UploadAvatar(ctx context.Context, filter UploadAvatarFilter) (string, error) {
+	src, err := filter.AvatarFile.Open()
 	if err != nil {
 		return "", fmt.Errorf("open avatar file: %v", err)
 	}
@@ -86,7 +85,7 @@ func (s *MinIOAvatarStorage) UploadAvatar(ctx context.Context, userID int, avata
 		return "", err
 	}
 
-	objectName, err := buildAvatarObjectName(userID, extension)
+	objectName, err := buildAvatarObjectName(filter.UserID, extension)
 	if err != nil {
 		return "", fmt.Errorf("build avatar object name: %v", err)
 	}

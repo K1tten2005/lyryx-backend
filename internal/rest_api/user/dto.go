@@ -31,6 +31,3 @@ type PatchUpdateUserIn struct {
 	Password *string `json:"password"`
 }
 
-type PatchUpdateAvatarIn struct {
-	AvatarURL string `json:"avatar_url" validate:"required,url"`
-}

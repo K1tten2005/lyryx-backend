@@ -15,6 +15,8 @@ var (
 	ErrUserNotFound       = errors.New("user not found")
 	ErrEmailAlreadyExists = errors.New("email already exists")
 	ErrUsernameTaken      = errors.New("username already exists")
+	ErrInvalidAvatarType  = errors.New("avatar must be a valid png/jpeg image")
+	ErrAvatarTooLarge     = errors.New("avatar file is too large (max 5MB)")
 )
 
 const (
@@ -27,20 +29,27 @@ type storage interface {
 	PatchUpdateAvatar(ctx context.Context, opts dto.PatchUpdateAvatarOpts) error
 }
 
+type avatarGetter interface {
+	UploadAvatar(ctx context.Context, opts dto.UploadAvatarOpts) (string, error)
+}
+
 type Usecase struct {
-	storage storage
+	storage      storage
+	avatarGetter avatarGetter
 
 	logger *logrus.Logger
 }
 
 func NewUsecase(
 	storage storage,
+	avatarGetter avatarGetter,
 
 	logger *logrus.Logger,
 ) *Usecase {
 	return &Usecase{
-		storage: storage,
-		logger:  logger,
+		storage:      storage,
+		avatarGetter: avatarGetter,
+		logger:       logger,
 	}
 }
 
@@ -84,8 +93,24 @@ func (u *Usecase) PatchUpdateUser(ctx context.Context, opts dto.PatchUpdateUserO
 	return nil
 }
 
-func (u *Usecase) PatchUpdateAvatar(ctx context.Context, opts dto.PatchUpdateAvatarOpts) error {
-	err := u.storage.PatchUpdateAvatar(ctx, opts)
+func (u *Usecase) PatchUpdateAvatar(ctx context.Context, opts dto.UploadAvatarOpts) error {
+	// 1. Загружаем аватар в minio.
+	avatarUrl, err := u.avatarGetter.UploadAvatar(ctx, opts)
+	if err != nil {
+		if errors.Is(err, wrappers.ErrInvalidAvatarType) {
+			return fmt.Errorf("patch update avatar: %v", ErrInvalidAvatarType)
+		}
+		if errors.Is(err, wrappers.ErrAvatarTooLarge) {
+			return fmt.Errorf("patch update avatar: %v", ErrAvatarTooLarge)
+		}
+		return fmt.Errorf("patch update avatar: %v", err)
+	}
+
+	// 2. Обновляем ссылку на аватар в бд.
+	err = u.storage.PatchUpdateAvatar(ctx, dto.PatchUpdateAvatarOpts{
+		UserID:    opts.UserID,
+		AvatarURL: avatarUrl,
+	})
 	if err != nil {
 		if errors.Is(err, wrappers.ErrUserNotFound) {
 			return ErrUserNotFound

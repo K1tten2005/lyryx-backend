@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/K1tten2005/lyryx-backend/internal/usecases/user/dto"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
@@ -79,7 +78,7 @@ func (s *Storage) GetUserByID(_ context.Context, userID int) (User, error) {
 	return user, nil
 }
 
-func (s *Storage) PatchUpdateUser(_ context.Context, opts dto.PatchUpdateUserOpts) error {
+func (s *Storage) UpdateUserInfo(_ context.Context, filter UpdateUserInfoFilter) error {
 	query := `
 		UPDATE users
 		SET
@@ -90,7 +89,7 @@ func (s *Storage) PatchUpdateUser(_ context.Context, opts dto.PatchUpdateUserOpt
 		WHERE id = $1
 	`
 
-	res, err := s.db.Exec(query, opts.UserID, opts.Email, opts.Username, opts.Bio, opts.Password)
+	res, err := s.db.Exec(query, filter.UserID, filter.Email, filter.Username, filter.Bio, filter.Password)
 	if err != nil {
 		if isUniqueViolation(err, "users_email_key") {
 			return ErrEmailAlreadyExists
@@ -112,14 +111,14 @@ func (s *Storage) PatchUpdateUser(_ context.Context, opts dto.PatchUpdateUserOpt
 	return nil
 }
 
-func (s *Storage) PatchUpdateAvatar(_ context.Context, opts dto.PatchUpdateAvatarOpts) error {
+func (s *Storage) UpdateUserAvatar(_ context.Context, filter UpdateUserAvatarFilter) error {
 	query := `
 		UPDATE users
 		SET avatar_url = $2
 		WHERE id = $1
 	`
 
-	res, err := s.db.Exec(query, opts.UserID, opts.AvatarURL)
+	res, err := s.db.Exec(query, filter.UserID, filter.AvatarURL)
 	if err != nil {
 		return fmt.Errorf("exec patch update avatar: %v", err)
 	}

@@ -17,16 +17,20 @@ var (
 
 type storage interface {
 	GetUserByID(_ context.Context, userID int) (storageDto.User, error)
-	PatchUpdateUser(_ context.Context, opts dto.PatchUpdateUserOpts) error
-	PatchUpdateAvatar(_ context.Context, opts dto.PatchUpdateAvatarOpts) error
+	UpdateUserInfo(_ context.Context, filter storageDto.UpdateUserInfoFilter) error
+	UpdateUserAvatar(_ context.Context, filter storageDto.UpdateUserAvatarFilter) error
 }
 
 type Storage struct {
-	storage storage
+	storage       storage
+	avatarStorage avatarStorage
 }
 
-func NewStorage(storage storage) *Storage {
-	return &Storage{storage: storage}
+func NewStorage(storage storage, avatarStorage avatarStorage) *Storage {
+	return &Storage{
+		storage:       storage,
+		avatarStorage: avatarStorage,
+	}
 }
 
 func (s *Storage) GetUserByID(ctx context.Context, userID int) (dto.User, error) {
@@ -50,7 +54,15 @@ func (s *Storage) GetUserByID(ctx context.Context, userID int) (dto.User, error)
 }
 
 func (s *Storage) PatchUpdateUser(ctx context.Context, opts dto.PatchUpdateUserOpts) error {
-	err := s.storage.PatchUpdateUser(ctx, opts)
+	filter := storageDto.UpdateUserInfoFilter{
+		UserID:   opts.UserID,
+		Email:    opts.Email,
+		Username: opts.Username,
+		Bio:      opts.Bio,
+		Password: opts.Password,
+	}
+
+	err := s.storage.UpdateUserInfo(ctx, filter)
 	if err != nil {
 		if errors.Is(err, storageDto.ErrUserNotFound) {
 			return ErrUserNotFound
@@ -68,7 +80,11 @@ func (s *Storage) PatchUpdateUser(ctx context.Context, opts dto.PatchUpdateUserO
 }
 
 func (s *Storage) PatchUpdateAvatar(ctx context.Context, opts dto.PatchUpdateAvatarOpts) error {
-	err := s.storage.PatchUpdateAvatar(ctx, opts)
+	filter := storageDto.UpdateUserAvatarFilter{
+		UserID:    opts.UserID,
+		AvatarURL: opts.AvatarURL,
+	}
+	err := s.storage.UpdateUserAvatar(ctx, filter)
 	if err != nil {
 		if errors.Is(err, storageDto.ErrUserNotFound) {
 			return ErrUserNotFound
