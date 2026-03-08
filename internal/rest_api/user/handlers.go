@@ -110,7 +110,6 @@ func getUserMeToOut(user dto.User) GetUserMeOut {
 // @Produce      json
 // @Param        id   path int      true  "User ID"
 // @Success      200    {object} GetUserByIDOut       "Успешный ответ с профилем пользователя"
-// @Failure      400    {object} echo.HTTPError      "Пользователь не аутентифицирован"
 // @Failure      404    {object} echo.HTTPError      "Пользователь не найден"
 // @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
 // @Router       /v1/user/{id} [get]

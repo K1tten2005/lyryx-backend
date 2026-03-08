@@ -49,17 +49,16 @@ func (h *Handlers) RegisterHandlers(e *echo.Echo, authMiddleware echo.Middleware
 	//private.POST("/v1/artist/", h.PostArtist, checkRoleMiddleware.CheckRole(roles.RoleModerator))
 }
 
-// GetUserByID godoc
-// @Summary      Получение данных пользователя по его id.
-// @Description  Возвращает полную информацию о профиле пользователя по его id.
-// @Tags         user
+// GetArtistByID godoc
+// @Summary      Получение данных артиста по его id.
+// @Description  Возвращает полную информацию о профиле артиста по его id.
+// @Tags         artist
 // @Produce      json
-// @Param        id   path int      true  "User ID"
-// @Success      200    {object} GetUserByIDOut       "Успешный ответ с профилем пользователя"
-// @Failure      400    {object} echo.HTTPError      "Пользователь не аутентифицирован"
-// @Failure      404    {object} echo.HTTPError      "Пользователь не найден"
+// @Param        id   path int      true  "Artist ID"
+// @Success      200    {object} GetArtistByIDOut       "Успешный ответ с профилем артиста"
+// @Failure      404    {object} echo.HTTPError      "Артист не найден"
 // @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
-// @Router       /v1/user/{id} [get]
+// @Router       /v1/artist/{id} [get]
 func (h *Handlers) GetArtistByID(c echo.Context) error {
 	ctx := c.Request().Context()
 	req := new(GetArtistByIDIn)

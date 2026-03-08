@@ -4,6 +4,17 @@ definitions:
     properties:
       message: {}
     type: object
+  internal_rest_api_artist.GetArtistByIDOut:
+    properties:
+      artist_id:
+        type: integer
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      name:
+        type: string
+    type: object
   internal_rest_api_auth.PostRefreshTokenOut:
     properties:
       access_token:
@@ -93,6 +104,33 @@ info:
   title: lyryx API
   version: "1.0"
 paths:
+  /v1/artist/{id}:
+    get:
+      description: Возвращает полную информацию о профиле артиста по его id.
+      parameters:
+      - description: Artist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ с профилем артиста
+          schema:
+            $ref: '#/definitions/internal_rest_api_artist.GetArtistByIDOut'
+        "404":
+          description: Артист не найден
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      summary: Получение данных артиста по его id.
+      tags:
+      - artist
   /v1/auth/refresh:
     post:
       produces:
@@ -217,10 +255,6 @@ paths:
           description: Успешный ответ с профилем пользователя
           schema:
             $ref: '#/definitions/internal_rest_api_user.GetUserByIDOut'
-        "400":
-          description: Пользователь не аутентифицирован
-          schema:
-            $ref: '#/definitions/echo.HTTPError'
         "404":
           description: Пользователь не найден
           schema:

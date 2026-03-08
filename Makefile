@@ -1,5 +1,5 @@
 docs:
-	swag init --parseDependency --parseInternal -g cmd/app/main.go
+	swag init --parseDependency --parseInternal -g ./cmd/app/main.go
 
 app-up:
 	docker compose up -d 

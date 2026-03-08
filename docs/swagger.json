@@ -8,6 +8,47 @@
     "host": "localhost:8080",
     "basePath": "/",
     "paths": {
+        "/v1/artist/{id}": {
+            "get": {
+                "description": "Возвращает полную информацию о профиле артиста по его id.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "artist"
+                ],
+                "summary": "Получение данных артиста по его id.",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Artist ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешный ответ с профилем артиста",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_artist.GetArtistByIDOut"
+                        }
+                    },
+                    "404": {
+                        "description": "Артист не найден",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/auth/refresh": {
             "post": {
                 "produces": [
@@ -345,12 +386,6 @@
                             "$ref": "#/definitions/internal_rest_api_user.GetUserByIDOut"
                         }
                     },
-                    "400": {
-                        "description": "Пользователь не аутентифицирован",
-                        "schema": {
-                            "$ref": "#/definitions/echo.HTTPError"
-                        }
-                    },
                     "404": {
                         "description": "Пользователь не найден",
                         "schema": {
@@ -372,6 +407,23 @@
             "type": "object",
             "properties": {
                 "message": {}
+            }
+        },
+        "internal_rest_api_artist.GetArtistByIDOut": {
+            "type": "object",
+            "properties": {
+                "artist_id": {
+                    "type": "integer"
+                },
+                "avatar_url": {
+                    "type": "string"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
             }
         },
         "internal_rest_api_auth.PostRefreshTokenOut": {
