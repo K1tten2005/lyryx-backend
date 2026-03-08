@@ -7,12 +7,16 @@ CREATE TABLE users (
     password_hash    VARCHAR(255) NOT NULL,
     avatar_url       VARCHAR(255),
     bio              TEXT,
-    role             VARCHAR(50)  NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'moderator', 'admin')),
+    role             VARCHAR(50)  NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'moderator')),
     reputation_score INTEGER      DEFAULT 0,
     refresh_token    TEXT,
     created_at       TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
 );
+
+-- При миграции добавляем модератора с паролем moder
+INSERT INTO users (username, email, password_hash, role)
+VALUES ('moder', 'moder@mail.ru', '$2a$12$sxI.ki6dKpRYBOBAlo5KZ.WFW7gdU3F/3tHdNmiywm25FAC8u8ecy', 'moderator');
 
 -- +goose StatementBegin
 CREATE OR REPLACE FUNCTION update_updated_at_column()

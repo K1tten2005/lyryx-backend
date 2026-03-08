@@ -1,0 +1,12 @@
+package artist
+
+type GetArtistByIDIn struct {
+	ArtistID int `param:"id" validate:"required"`
+}
+
+type GetArtistByIDOut struct {
+	ArtistID          int    `json:"artist_id"`
+	Name              string `json:"name"`
+	Bio               string `json:"bio"`
+	AvatarURL         string `json:"avatar_url"`
+}

@@ -6,9 +6,16 @@ import (
 	"github.com/K1tten2005/lyryx-backend/internal/config"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
+	"github.com/K1tten2005/lyryx-backend/internal/rest_api/middlewares"
+
+	//"github.com/K1tten2005/lyryx-backend/internal/rest_api/middlewares"
+	artistHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/artist"
 	authHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
 	userHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/user"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/utils"
+	artistUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/artist"
+	artistStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/artist/storage"
+	artistWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/artist/wrappers"
 	authUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth"
 	authStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/storage"
 	authWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/wrappers"
@@ -27,6 +34,11 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+)
+
+var (
+	userBucketName   = "user"
+	artistBucketName = "artist"
 )
 
 func init() {
@@ -84,6 +96,7 @@ func main() {
 	}
 
 	authMiddleware := echojwt.WithConfig(authConfig)
+	checkRoleMiddleware := middlewares.NewRoleCheckerMiddleware(logger)
 
 	echoHandler := echo.New()
 
@@ -100,16 +113,22 @@ func main() {
 	authHandlers.RegisterHandlers(echoHandler, authMiddleware)
 
 	userStorage := userStoragePkg.NewStorage(db, logger)
-	avatarStorage := userStoragePkg.NewMinIOAvatarStorage(minioClient, cfg.MinIOBucket, cfg.MinIOPublicBaseURL)
+	avatarStorage := userStoragePkg.NewMinIOAvatarStorage(minioClient, userBucketName, cfg.MinIOPublicBaseURL)
 	if err := avatarStorage.EnsureBucketPublic(context.Background()); err != nil {
 		log.Errorf("failed ensure minio bucket public policy: %v", err)
 		return
 	}
-	userWrappers := userWrappersPkg.NewStorage(userStorage, avatarStorage)
-	avatarWrapper := userWrappersPkg.NewAvatarGetter(avatarStorage)
+	userWrappers := userWrappersPkg.NewStorage(userStorage)
+	avatarWrapper := userWrappersPkg.NewUserAvatarStorage(avatarStorage)
 	userUsecase := userUsecasePkg.NewUsecase(userWrappers, avatarWrapper, logger)
 	userHandlers := userHandlersPkg.NewUserHandlers(userUsecase, claimsGetter, logger)
 	userHandlers.RegisterHandlers(echoHandler, authMiddleware)
+
+	artistStorage := artistStoragePkg.NewStorage(db, logger)
+	artistWrappers := artistWrappersPkg.NewStorage(artistStorage)
+	artistUsecase := artistUsecasePkg.NewUsecase(artistWrappers, logger)
+	artistHandlers := artistHandlersPkg.NewArtistHandlers(artistUsecase, claimsGetter, logger)
+	artistHandlers.RegisterHandlers(echoHandler, authMiddleware, checkRoleMiddleware)
 
 	echoHandler.Use(echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
 		AllowOrigins: []string{"*"}, // На этапе разработки можно всё

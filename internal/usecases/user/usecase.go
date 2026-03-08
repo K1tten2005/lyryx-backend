@@ -29,27 +29,27 @@ type storage interface {
 	PatchUpdateAvatar(ctx context.Context, opts dto.PatchUpdateAvatarOpts) error
 }
 
-type avatarGetter interface {
+type userAvatarUploader interface {
 	UploadAvatar(ctx context.Context, opts dto.UploadAvatarOpts) (string, error)
 }
 
 type Usecase struct {
-	storage      storage
-	avatarGetter avatarGetter
+	storage            storage
+	userAvatarUploader userAvatarUploader
 
 	logger *logrus.Logger
 }
 
 func NewUsecase(
 	storage storage,
-	avatarGetter avatarGetter,
+	userAvatarUploader userAvatarUploader,
 
 	logger *logrus.Logger,
 ) *Usecase {
 	return &Usecase{
-		storage:      storage,
-		avatarGetter: avatarGetter,
-		logger:       logger,
+		storage:            storage,
+		userAvatarUploader: userAvatarUploader,
+		logger:             logger,
 	}
 }
 
@@ -95,7 +95,7 @@ func (u *Usecase) PatchUpdateUser(ctx context.Context, opts dto.PatchUpdateUserO
 
 func (u *Usecase) PatchUpdateAvatar(ctx context.Context, opts dto.UploadAvatarOpts) error {
 	// 1. Загружаем аватар в minio.
-	avatarUrl, err := u.avatarGetter.UploadAvatar(ctx, opts)
+	avatarUrl, err := u.userAvatarUploader.UploadAvatar(ctx, opts)
 	if err != nil {
 		if errors.Is(err, wrappers.ErrInvalidAvatarType) {
 			return fmt.Errorf("patch update avatar: %v", ErrInvalidAvatarType)

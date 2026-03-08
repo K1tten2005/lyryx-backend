@@ -23,13 +23,11 @@ type storage interface {
 
 type Storage struct {
 	storage       storage
-	avatarStorage avatarStorage
 }
 
-func NewStorage(storage storage, avatarStorage avatarStorage) *Storage {
+func NewStorage(storage storage) *Storage {
 	return &Storage{
 		storage:       storage,
-		avatarStorage: avatarStorage,
 	}
 }
 

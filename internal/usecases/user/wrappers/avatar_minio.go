@@ -14,27 +14,27 @@ var (
 	ErrAvatarTooLarge    = errors.New("avatar file is too large (max 5MB)")
 )
 
-type avatarStorage interface {
+type userAvatarStorage interface {
 	UploadAvatar(ctx context.Context, filter storageDto.UploadAvatarFilter) (string, error)
 }
 
-type AvatarGetter struct {
-	avatarStorage avatarStorage
+type UserAvatarStorage struct {
+	userAvatarStorage userAvatarStorage
 }
 
-func NewAvatarGetter(avatarStorage avatarStorage) *AvatarGetter {
-	return &AvatarGetter{
-		avatarStorage: avatarStorage,
+func NewUserAvatarStorage(userAvatarStorage userAvatarStorage) *UserAvatarStorage {
+	return &UserAvatarStorage{
+		userAvatarStorage: userAvatarStorage,
 	}
 }
 
-func (a *AvatarGetter) UploadAvatar(ctx context.Context, opts dto.UploadAvatarOpts) (string, error) {
+func (ua *UserAvatarStorage) UploadAvatar(ctx context.Context, opts dto.UploadAvatarOpts) (string, error) {
 	filter := storageDto.UploadAvatarFilter{
 		UserID:     opts.UserID,
 		AvatarFile: opts.AvatarFile,
 	}
 	
-	avatarUrl, err := a.avatarStorage.UploadAvatar(ctx, filter)
+	avatarUrl, err := ua.userAvatarStorage.UploadAvatar(ctx, filter)
 	if err != nil {
 		if errors.Is(err, storageDto.ErrInvalidAvatarType) {
 			return "", fmt.Errorf("upload avatar: %w", ErrInvalidAvatarType)
