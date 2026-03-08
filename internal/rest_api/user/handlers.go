@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mime/multipart"
 	"net/http"
 	"strings"
 
@@ -24,10 +23,6 @@ type userUsecase interface {
 
 type claimsGetter interface {
 	GetClaims(c echo.Context) (*auth.JwtCustomClaims, error)
-}
-
-type avatarStorage interface {
-	UploadAvatar(ctx context.Context, userID int, avatarFile *multipart.FileHeader) (string, error)
 }
 
 type Handlers struct {
