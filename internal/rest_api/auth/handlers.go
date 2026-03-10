@@ -128,9 +128,8 @@ func generateTokens(userInfo *dto.UserInfo, jwtSecret []byte) (
 // @Param 	     request body   PostSignUpIn   true "Параметры запроса."
 // @Success      200    {object} PostSignUpOut       "Успешный ответ с access_token"
 // @Failure      400    {object} echo.HTTPError      "Некорректный запрос"
-// @Failure      404    {object} echo.HTTPError      "Информация не найдена"
-// @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
 // @Failure      409    {object} echo.HTTPError      "Пользователь уже зарегистрирован"
+// @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
 // @Router       /v1/auth/sign-up [post]
 func (h *Handlers) PostSignUp(c echo.Context) error {
 	ctx := c.Request().Context()
@@ -231,7 +230,7 @@ func signUpOptsToOut(opts dto.UserInfo, accessToken string) PostSignUpOut {
 // @Param 	     request body   PostSignInIn   true "Параметры запроса."
 // @Success      200    {object} PostSignInOut       "Успешный ответ с access_token"
 // @Failure      400    {object} echo.HTTPError      "Некорректный запрос"
-// @Failure      404    {object} echo.HTTPError      "Информация не найдена"
+// @Failure      404    {object} echo.HTTPError      "Неверный email или пароль"
 // @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
 // @Router       /v1/auth/sign-in [post]
 func (h *Handlers) PostSignIn(c echo.Context) error {
@@ -335,6 +334,7 @@ func setNewRefreshTokenToOpts(email, refreshToken string) dto.SetNewRefreshToken
 // @Success      200
 // @Failure      401    {object} echo.HTTPError      "Пользователь не авторизован"
 // @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
+// @Security     ApiKeyAuth
 // @Router       /v1/auth/sign-out [post]
 func (h *Handlers) PostSignOut(c echo.Context) error {
 	ctx := c.Request().Context()

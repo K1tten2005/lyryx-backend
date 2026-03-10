@@ -61,8 +61,10 @@ func (h *Handlers) RegisterHandlers(e *echo.Echo, authMiddleware echo.Middleware
 // @Tags         user
 // @Produce      json
 // @Success      200    {object} GetUserMeOut       "Успешный ответ с профилем пользователя"
+// @Failure      404    {object} echo.HTTPError      "Пользователь не найден"
 // @Failure      401    {object} echo.HTTPError      "Пользователь не аутентифицирован"
 // @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
+// @Security     ApiKeyAuth
 // @Router       /v1/user/me [get]
 func (h *Handlers) GetUserMe(c echo.Context) error {
 	ctx := c.Request().Context()
@@ -110,6 +112,7 @@ func getUserMeToOut(user dto.User) GetUserMeOut {
 // @Produce      json
 // @Param        id   path int      true  "User ID"
 // @Success      200    {object} GetUserByIDOut       "Успешный ответ с профилем пользователя"
+// @Failure      400    {object} echo.HTTPError      "Некорректный id пользователя"
 // @Failure      404    {object} echo.HTTPError      "Пользователь не найден"
 // @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
 // @Router       /v1/user/{id} [get]
@@ -159,12 +162,13 @@ func getUserByIDToOut(user dto.User) GetUserByIDOut {
 // @Accept       json
 // @Produce      json
 // @Param        request body PatchUpdateUserIn true "Параметры обновления профиля"
-// @Success      204
+// @Success      200    {object} PatchUpdateUserOut   "Профиль пользователя обновлен"
 // @Failure      400    {object} echo.HTTPError      "Некорректный запрос"
 // @Failure      401    {object} echo.HTTPError      "Пользователь не аутентифицирован"
 // @Failure      404    {object} echo.HTTPError      "Пользователь не найден"
 // @Failure      409    {object} echo.HTTPError      "Email или username уже заняты"
 // @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
+// @Security     ApiKeyAuth
 // @Router       /v1/user/me [patch]
 func (h *Handlers) PatchUpdateUser(c echo.Context) error {
 	ctx := c.Request().Context()
@@ -272,11 +276,12 @@ func patchUpdateUserToOut(user dto.User) PatchUpdateUserOut {
 // @Accept       mpfd
 // @Produce      json
 // @Param        avatar formData file true "Файл аватарки (png/jpeg/gif)"
-// @Success      204
+// @Success      200    {object} PatchUpdateAvatarOut "Аватар пользователя обновлен"
 // @Failure      400    {object} echo.HTTPError      "Некорректный запрос"
 // @Failure      401    {object} echo.HTTPError      "Пользователь не аутентифицирован"
 // @Failure      404    {object} echo.HTTPError      "Пользователь не найден"
 // @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
+// @Security     ApiKeyAuth
 // @Router       /v1/user/me/avatar [patch]
 func (h *Handlers) PatchUpdateAvatar(c echo.Context) error {
 	ctx := c.Request().Context()
