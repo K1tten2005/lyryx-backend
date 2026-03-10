@@ -59,6 +59,7 @@ func (h *Handlers) RegisterHandlers(e *echo.Echo, authMiddleware echo.Middleware
 // @Produce      json
 // @Param        id   path int      true  "Artist ID"
 // @Success      200    {object} GetArtistByIDOut       "Успешный ответ с профилем артиста"
+// @Failure      400    {object} echo.HTTPError      "Некорректный id артиста"
 // @Failure      404    {object} echo.HTTPError      "Артист не найден"
 // @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
 // @Router       /v1/artist/{id} [get]
@@ -98,15 +99,20 @@ func getArtistByIDToOut(artist dto.Artist) GetArtistByIDOut {
 	}
 }
 
-// GetArtistByID godoc
-// @Summary      Получение данных артиста по его id.
-// @Description  Возвращает полную информацию о профиле артиста по его id.
+// PostArtist godoc
+// @Summary      Создание артиста.
+// @Description  Создает нового артиста по имени и био. Доступно только модератору.
 // @Tags         artist
+// @Accept       json
 // @Produce      json
-// @Param        id   path int      true  "Artist ID"
-// @Success      200    {object} GetArtistByIDOut       "Успешный ответ с профилем артиста"
-// @Failure      404    {object} echo.HTTPError      "Артист не найден"
+// @Param        request body PostArtistIn true "Параметры артиста"
+// @Success      201    {object} PostArtistOut      "Артист успешно создан"
+// @Failure      400    {object} echo.HTTPError      "Некорректный запрос"
+// @Failure      401    {object} echo.HTTPError      "Пользователь не аутентифицирован"
+// @Failure      403    {object} echo.HTTPError      "Недостаточно прав"
+// @Failure      409    {object} echo.HTTPError      "Имя артиста уже занято"
 // @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
+// @Security     ApiKeyAuth
 // @Router       /v1/artist [post]
 func (h *Handlers) PostArtist(c echo.Context) error {
 	ctx := c.Request().Context()
