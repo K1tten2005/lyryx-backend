@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 )
 
@@ -78,7 +79,7 @@ func (s *Storage) GetUserByID(_ context.Context, userID int) (User, error) {
 	return user, nil
 }
 
-func (s *Storage) UpdateUserInfo(_ context.Context, filter UpdateUserInfoFilter) error {
+func (s *Storage) UpdateUserInfo(_ context.Context, filter UpdateUserInfoFilter) (User, error) {
 	query := `
 		UPDATE users
 		SET
@@ -87,28 +88,41 @@ func (s *Storage) UpdateUserInfo(_ context.Context, filter UpdateUserInfoFilter)
 			bio = COALESCE($4, bio),
 			password_hash = COALESCE($5, password_hash)
 		WHERE id = $1
+		RETURNING id, username, email, role, reputation_score, bio, avatar_url
 	`
 
-	res, err := s.db.Exec(query, filter.UserID, filter.Email, filter.Username, filter.Bio, filter.Password)
-	if err != nil {
+	row := s.db.QueryRow(query, filter.UserID, filter.Email, filter.Username, filter.Bio, filter.Password)
+
+	var user User
+	var bio sql.NullString
+	var avatarURL sql.NullString
+	if err := row.Scan(
+		&user.UserID,
+		&user.Username,
+		&user.Email,
+		&user.Role,
+		&user.ReputationScore,
+		&bio,
+		&avatarURL,
+	); err != nil {
 		if isUniqueViolation(err, "users_email_key") {
-			return ErrEmailAlreadyExists
+			return User{}, fmt.Errorf("query: %w", ErrEmailAlreadyExists)
 		}
 		if isUniqueViolation(err, "users_username_key") {
-			return ErrUsernameTaken
+			return User{}, fmt.Errorf("query: %w", ErrUsernameTaken)
 		}
-		return fmt.Errorf("exec patch update user: %v", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return User{}, fmt.Errorf("query: %w", ErrUserNotFound)
+		}
+		return User{}, fmt.Errorf("query: %v", err)
 	}
-
-	rowsAffected, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("rows affected: %v", err)
+	if bio.Valid {
+		user.Bio = bio.String
 	}
-	if rowsAffected == 0 {
-		return ErrUserNotFound
+	if avatarURL.Valid {
+		user.AvatarURL = avatarURL.String
 	}
-
-	return nil
+	return user, nil
 }
 
 func (s *Storage) UpdateUserAvatar(_ context.Context, filter UpdateUserAvatarFilter) error {
@@ -132,4 +146,17 @@ func (s *Storage) UpdateUserAvatar(_ context.Context, filter UpdateUserAvatarFil
 	}
 
 	return nil
+}
+
+func isUniqueViolation(err error, constraint string) bool {
+	pqErr, ok := err.(*pq.Error)
+	if !ok {
+		return false
+	}
+
+	if pqErr.Code != "23505" {
+		return false
+	}
+
+	return pqErr.Constraint == constraint
 }

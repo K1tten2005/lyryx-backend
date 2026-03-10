@@ -8,7 +8,11 @@ type PostSignUpIn struct {
 }
 
 type PostSignUpOut struct {
-	AccessToken string `json:"access_token"`
+	Username        string `json:"username"`
+	Email           string `json:"email"`
+	Role            string `json:"role"`
+	ReputationScore int    `json:"reputation"`
+	AccessToken     string `json:"access_token"`
 }
 
 // sign-in
@@ -18,7 +22,11 @@ type PostSignInIn struct {
 }
 
 type PostSignInOut struct {
-	AccessToken string `json:"access_token"`
+	Username        string `json:"username"`
+	Email           string `json:"email"`
+	Role            string `json:"role"`
+	ReputationScore int    `json:"reputation"`
+	AccessToken     string `json:"access_token"`
 }
 
 // refresh

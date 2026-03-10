@@ -46,10 +46,11 @@ func (s *Storage) CreateUser(ctx context.Context, opts dto.SignUpOpts) (dto.User
 	}
 
 	return dto.UserInfo{
-		UserID:   userInfo.UserID,
-		Email:    userInfo.Email,
-		Username: userInfo.Username,
-		Role:     userInfo.Role,
+		UserID:          userInfo.UserID,
+		Email:           userInfo.Email,
+		Username:        userInfo.Username,
+		ReputationScore: userInfo.ReputationScore,
+		Role:            userInfo.Role,
 	}, nil
 }
 

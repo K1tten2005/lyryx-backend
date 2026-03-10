@@ -1,6 +1,8 @@
 package middlewares
 
 import (
+	"net/http"
+
 	"github.com/K1tten2005/lyryx-backend/internal/model/roles"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
 	log "github.com/sirupsen/logrus"
@@ -22,13 +24,13 @@ func (rcm *RolesCheckerMiddleware) CheckRole(minRole roles.Role) echo.Middleware
 			claims, err := auth.GetClaims(c)
 			if err != nil {
 				rcm.logger.WithError(err).Warning("[check_roles] get claims failed")
-				return next(c)
+				return echo.NewHTTPError(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
 			}
 
 			// Проверяем: уровень пользователя >= минимально нужного?
 			if roles.RoleLevel[roles.Role(claims.Role)] < roles.RoleLevel[minRole] {
 				rcm.logger.WithField("role", claims.Role).Warning("role check failed")
-				return next(c)
+				return echo.NewHTTPError(http.StatusForbidden, echo.Map{"error": "forbidden"})
 			}
 
 			return next(c)

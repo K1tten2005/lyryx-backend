@@ -183,9 +183,9 @@ func (h *Handlers) PostSignUp(c echo.Context) error {
 		MaxAge:   int(refreshTokenExp.Seconds()),
 	})
 
-	return c.JSON(http.StatusOK, PostSignUpOut{
-		AccessToken: signedAccessToken,
-	})
+	out := signUpOptsToOut(userInfo, signedAccessToken)
+
+	return c.JSON(http.StatusCreated, out)
 }
 
 func signUpInToOpts(req *PostSignUpIn) (dto.SignUpOpts, error) {
@@ -208,6 +208,16 @@ func signUpInToOpts(req *PostSignUpIn) (dto.SignUpOpts, error) {
 		Email:    email,
 		Password: req.Password,
 	}, nil
+}
+
+func signUpOptsToOut(opts dto.UserInfo, accessToken string) PostSignUpOut {
+	return PostSignUpOut{
+		Username:        opts.Username,
+		Email:           opts.Email,
+		Role:            opts.Role,
+		ReputationScore: opts.ReputationScore,
+		AccessToken:     accessToken,
+	}
 }
 
 // PostSignIn godoc
@@ -274,9 +284,9 @@ func (h *Handlers) PostSignIn(c echo.Context) error {
 		MaxAge:   int(refreshTokenExp.Seconds()),
 	})
 
-	return c.JSON(http.StatusOK, PostSignInOut{
-		AccessToken: signedAccessToken,
-	})
+	out := signInOptsToOut(userInfo, signedAccessToken)
+
+	return c.JSON(http.StatusOK, out)
 }
 
 func signInInToOpts(req *PostSignInIn) (dto.SignInOpts, error) {
@@ -295,6 +305,16 @@ func signInInToOpts(req *PostSignInIn) (dto.SignInOpts, error) {
 	}, nil
 }
 
+func signInOptsToOut(opts dto.UserInfo, accessToken string) PostSignInOut {
+	return PostSignInOut{
+		Username:        opts.Username,
+		Email:           opts.Email,
+		Role:            opts.Role,
+		ReputationScore: opts.ReputationScore,
+		AccessToken:     accessToken,
+	}
+}
+
 func setNewRefreshTokenToOpts(email, refreshToken string) dto.SetNewRefreshTokenOpts {
 	return dto.SetNewRefreshTokenOpts{
 		Email:        email,
@@ -306,7 +326,7 @@ func setNewRefreshTokenToOpts(email, refreshToken string) dto.SetNewRefreshToken
 // @Summary      Выход из аккаунта
 // @Tags         auth
 // @Produce      json
-// @Success      200    
+// @Success      200
 // @Failure      401    {object} echo.HTTPError      "Пользователь не авторизован"
 // @Failure      500    {object} echo.HTTPError      "Внутренняя ошибка сервера"
 // @Router       /v1/auth/sign-out [post]

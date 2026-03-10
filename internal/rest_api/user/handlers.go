@@ -17,8 +17,8 @@ import (
 
 type userUsecase interface {
 	GetUserByID(ctx context.Context, userID int) (dto.User, error)
-	PatchUpdateUser(ctx context.Context, opts dto.PatchUpdateUserOpts) error
-	PatchUpdateAvatar(ctx context.Context, opts dto.UploadAvatarOpts) error
+	PatchUpdateUser(ctx context.Context, opts dto.PatchUpdateUserOpts) (dto.User, error)
+	PatchUpdateAvatar(ctx context.Context, opts dto.UploadAvatarOpts) (string, error)
 }
 
 type claimsGetter interface {
@@ -187,7 +187,7 @@ func (h *Handlers) PatchUpdateUser(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": err.Error()})
 	}
 
-	err = h.userUsecase.PatchUpdateUser(ctx, opts)
+	user, err := h.userUsecase.PatchUpdateUser(ctx, opts)
 	if err != nil {
 		h.logger.WithError(err).Warning("patch update user failed")
 		if errors.Is(err, usecase.ErrUserNotFound) {
@@ -202,7 +202,9 @@ func (h *Handlers) PatchUpdateUser(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": "internal server error"})
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	out := patchUpdateUserToOut(user)
+
+	return c.JSON(http.StatusOK, out)
 }
 
 func patchUpdateUserToOpts(userID int, req *PatchUpdateUserIn) (dto.PatchUpdateUserOpts, error) {
@@ -251,6 +253,18 @@ func patchUpdateUserToOpts(userID int, req *PatchUpdateUserIn) (dto.PatchUpdateU
 	}, nil
 }
 
+func patchUpdateUserToOut(user dto.User) PatchUpdateUserOut {
+	return PatchUpdateUserOut{
+		UserID:          user.UserID,
+		Email:           user.Email,
+		Username:        user.Username,
+		Bio:             user.Bio,
+		AvatarURL:       user.AvatarURL,
+		ReputationScore: user.ReputationScore,
+		Role:            user.Role,
+	}
+}
+
 // PatchUpdateAvatar godoc
 // @Summary      Обновление аватарки пользователя
 // @Description  Принимает avatar в multipart/form-data, валидирует изображение, загружает в MinIO и обновляет ссылку на аватар текущего пользователя.
@@ -279,7 +293,7 @@ func (h *Handlers) PatchUpdateAvatar(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": "avatar file is required"})
 	}
 
-	err = h.userUsecase.PatchUpdateAvatar(ctx, dto.UploadAvatarOpts{
+	avatarUrl, err := h.userUsecase.PatchUpdateAvatar(ctx, dto.UploadAvatarOpts{
 		UserID:     claims.UserID,
 		AvatarFile: avatarFile,
 	})
@@ -297,5 +311,7 @@ func (h *Handlers) PatchUpdateAvatar(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": "internal server error"})
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	return c.JSON(http.StatusOK, PatchUpdateAvatarOut{
+		AvatarURL: avatarUrl,
+	})
 }

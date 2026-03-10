@@ -10,3 +10,15 @@ type GetArtistByIDOut struct {
 	Bio               string `json:"bio"`
 	AvatarURL         string `json:"avatar_url"`
 }
+
+type PostArtistIn struct {
+	Name        string `json:"name" validate:"required"`
+	Bio         string `json:"bio"`
+}
+
+type PostArtistOut struct {
+	ArtistID          int    `json:"artist_id"`
+	Name              string `json:"name"`
+	Bio               string `json:"bio"`
+	AvatarURL         string `json:"avatar_url"`
+}

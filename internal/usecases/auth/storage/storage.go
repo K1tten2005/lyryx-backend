@@ -31,16 +31,13 @@ func NewStorage(db *sqlx.DB) *Storage {
 
 func (s *Storage) CreateUser(_ context.Context, filter SignUpFilter) (UserInfo, error) {
 	query := `INSERT INTO users (username, email, password_hash)
-            VALUES ($1, $2, $3) RETURNING id, role;`
+            VALUES ($1, $2, $3) RETURNING id, username, email, role, reputation_score;`
 
 	row := s.db.QueryRow(query, filter.Username, filter.Email, filter.HashedPassword)
 
-	userInfo := UserInfo{
-		Username: filter.Username,
-		Email:    filter.Email,
-	}
+	var userInfo UserInfo
 
-	err := row.Scan(&userInfo.UserID, &userInfo.Role)
+	err := row.Scan(&userInfo.UserID, &userInfo.Username, &userInfo.Email, &userInfo.Role, &userInfo.ReputationScore)
 	if err != nil {
 		// Проверяем, была ли ошибка по уникальности.
 		if pqErr, ok := err.(*pq.Error); ok {

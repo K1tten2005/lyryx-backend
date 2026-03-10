@@ -17,17 +17,17 @@ var (
 
 type storage interface {
 	GetUserByID(_ context.Context, userID int) (storageDto.User, error)
-	UpdateUserInfo(_ context.Context, filter storageDto.UpdateUserInfoFilter) error
+	UpdateUserInfo(_ context.Context, filter storageDto.UpdateUserInfoFilter) (storageDto.User, error)
 	UpdateUserAvatar(_ context.Context, filter storageDto.UpdateUserAvatarFilter) error
 }
 
 type Storage struct {
-	storage       storage
+	storage storage
 }
 
 func NewStorage(storage storage) *Storage {
 	return &Storage{
-		storage:       storage,
+		storage: storage,
 	}
 }
 
@@ -51,7 +51,7 @@ func (s *Storage) GetUserByID(ctx context.Context, userID int) (dto.User, error)
 	}, nil
 }
 
-func (s *Storage) PatchUpdateUser(ctx context.Context, opts dto.PatchUpdateUserOpts) error {
+func (s *Storage) PatchUpdateUser(ctx context.Context, opts dto.PatchUpdateUserOpts) (dto.User, error) {
 	filter := storageDto.UpdateUserInfoFilter{
 		UserID:   opts.UserID,
 		Email:    opts.Email,
@@ -60,21 +60,29 @@ func (s *Storage) PatchUpdateUser(ctx context.Context, opts dto.PatchUpdateUserO
 		Password: opts.Password,
 	}
 
-	err := s.storage.UpdateUserInfo(ctx, filter)
+	user, err := s.storage.UpdateUserInfo(ctx, filter)
 	if err != nil {
 		if errors.Is(err, storageDto.ErrUserNotFound) {
-			return ErrUserNotFound
+			return dto.User{}, fmt.Errorf("patch update user: %w", ErrUserNotFound)
 		}
 		if errors.Is(err, storageDto.ErrEmailAlreadyExists) {
-			return ErrEmailAlreadyExists
+			return dto.User{}, fmt.Errorf("patch update user: %w", ErrEmailAlreadyExists)
 		}
 		if errors.Is(err, storageDto.ErrUsernameTaken) {
-			return ErrUsernameTaken
+			return dto.User{}, fmt.Errorf("patch update user: %w", ErrUsernameTaken)
 		}
-		return fmt.Errorf("patch update user: %v", err)
+		return dto.User{}, fmt.Errorf("patch update user: %v", err)
 	}
 
-	return nil
+	return dto.User{
+		UserID:          user.UserID,
+		Email:           user.Email,
+		Username:        user.Username,
+		Bio:             user.Bio,
+		AvatarURL:       user.AvatarURL,
+		ReputationScore: user.ReputationScore,
+		Role:            user.Role,
+	}, nil
 }
 
 func (s *Storage) PatchUpdateAvatar(ctx context.Context, opts dto.PatchUpdateAvatarOpts) error {

@@ -6,3 +6,8 @@ type Artist struct {
 	Bio               string
 	AvatarURL         string
 }
+
+type CreateArtistFilter struct {
+	Name        string
+	Bio         string
+}

@@ -12,12 +12,14 @@ import (
 
 var (
 	ErrArtistNotFound    = errors.New("artist not found")
+	ErrNameTaken      = errors.New("artist name already exists")
 	ErrInvalidAvatarType = errors.New("avatar must be a valid png/jpeg image")
 	ErrAvatarTooLarge    = errors.New("avatar file is too large (max 5MB)")
 )
 
 type storage interface {
 	GetArtistByID(ctx context.Context, artistID int) (dto.Artist, error)
+	PostArtist(ctx context.Context, opts dto.PostArtistOpts) (dto.Artist, error)
 }
 
 type Usecase struct {
@@ -47,4 +49,16 @@ func (u *Usecase) GetArtistByID(ctx context.Context, artistID int) (dto.Artist, 
 	}
 
 	return user, nil
+}
+
+func (u *Usecase) PostArtist(ctx context.Context, opts dto.PostArtistOpts) (dto.Artist, error) {
+	artist, err := u.storage.PostArtist(ctx, opts)
+	if err != nil {
+		if errors.Is(err, wrappers.ErrNameTaken) {
+			return dto.Artist{}, fmt.Errorf("post artist: %w", ErrNameTaken)
+		}
+		return dto.Artist{}, fmt.Errorf("post artist: %v", err)
+	}
+
+	return artist, nil
 }

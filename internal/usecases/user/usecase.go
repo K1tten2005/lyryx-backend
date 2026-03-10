@@ -25,7 +25,7 @@ const (
 
 type storage interface {
 	GetUserByID(ctx context.Context, userID int) (dto.User, error)
-	PatchUpdateUser(ctx context.Context, opts dto.PatchUpdateUserOpts) error
+	PatchUpdateUser(ctx context.Context, opts dto.PatchUpdateUserOpts) (dto.User, error)
 	PatchUpdateAvatar(ctx context.Context, opts dto.PatchUpdateAvatarOpts) error
 }
 
@@ -65,45 +65,54 @@ func (u *Usecase) GetUserByID(ctx context.Context, userID int) (dto.User, error)
 	return user, nil
 }
 
-func (u *Usecase) PatchUpdateUser(ctx context.Context, opts dto.PatchUpdateUserOpts) error {
+func (u *Usecase) PatchUpdateUser(ctx context.Context, opts dto.PatchUpdateUserOpts) (dto.User, error) {
 	if opts.Password != nil {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*opts.Password), hashCost)
 		if err != nil {
-			return fmt.Errorf("hash password: %v", err)
+			return dto.User{}, fmt.Errorf("hash password: %v", err)
 		}
 
 		hashedPasswordStr := string(hashedPassword)
 		opts.Password = &hashedPasswordStr
 	}
 
-	err := u.storage.PatchUpdateUser(ctx, opts)
+	user, err := u.storage.PatchUpdateUser(ctx, opts)
 	if err != nil {
 		if errors.Is(err, wrappers.ErrUserNotFound) {
-			return ErrUserNotFound
+			return dto.User{}, fmt.Errorf("patch update user: %w", ErrUserNotFound)
 		}
 		if errors.Is(err, wrappers.ErrEmailAlreadyExists) {
-			return ErrEmailAlreadyExists
+			return dto.User{}, fmt.Errorf("patch update user: %w", ErrEmailAlreadyExists)
 		}
 		if errors.Is(err, wrappers.ErrUsernameTaken) {
-			return ErrUsernameTaken
+			return dto.User{}, fmt.Errorf("patch update user: %w", ErrUsernameTaken)
 		}
-		return fmt.Errorf("patch update user: %v", err)
+		return dto.User{}, fmt.Errorf("patch update user: %v", err)
 	}
 
-	return nil
+	return user, nil
 }
 
-func (u *Usecase) PatchUpdateAvatar(ctx context.Context, opts dto.UploadAvatarOpts) error {
-	// 1. Загружаем аватар в minio.
+func (u *Usecase) PatchUpdateAvatar(ctx context.Context, opts dto.UploadAvatarOpts) (string, error) {
+	// 1. Проверяем, что пользователь существует.
+	_, err := u.storage.GetUserByID(ctx, opts.UserID)
+	if err != nil {
+		if errors.Is(err, wrappers.ErrUserNotFound) {
+			return "", fmt.Errorf("patch update avatar: %w", ErrUserNotFound)
+		}
+		return "", fmt.Errorf("patch update avatar: %v", err)
+	}
+
+	// 2. Загружаем аватар в minio.
 	avatarUrl, err := u.userAvatarUploader.UploadAvatar(ctx, opts)
 	if err != nil {
 		if errors.Is(err, wrappers.ErrInvalidAvatarType) {
-			return fmt.Errorf("patch update avatar: %v", ErrInvalidAvatarType)
+			return "", fmt.Errorf("patch update avatar: %v", ErrInvalidAvatarType)
 		}
 		if errors.Is(err, wrappers.ErrAvatarTooLarge) {
-			return fmt.Errorf("patch update avatar: %v", ErrAvatarTooLarge)
+			return "", fmt.Errorf("patch update avatar: %v", ErrAvatarTooLarge)
 		}
-		return fmt.Errorf("patch update avatar: %v", err)
+		return "", fmt.Errorf("patch update avatar: %v", err)
 	}
 
 	// 2. Обновляем ссылку на аватар в бд.
@@ -113,10 +122,10 @@ func (u *Usecase) PatchUpdateAvatar(ctx context.Context, opts dto.UploadAvatarOp
 	})
 	if err != nil {
 		if errors.Is(err, wrappers.ErrUserNotFound) {
-			return ErrUserNotFound
+			return "", ErrUserNotFound
 		}
-		return fmt.Errorf("patch update avatar: %v", err)
+		return "", fmt.Errorf("patch update avatar: %v", err)
 	}
 
-	return nil
+	return avatarUrl, nil
 }
