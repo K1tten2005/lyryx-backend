@@ -15,6 +15,26 @@ definitions:
       name:
         type: string
     type: object
+  internal_rest_api_artist.PostArtistIn:
+    properties:
+      bio:
+        type: string
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  internal_rest_api_artist.PostArtistOut:
+    properties:
+      artist_id:
+        type: integer
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      name:
+        type: string
+    type: object
   internal_rest_api_auth.PostRefreshTokenOut:
     properties:
       access_token:
@@ -34,6 +54,8 @@ definitions:
     properties:
       access_token:
         type: string
+      user:
+        $ref: '#/definitions/internal_rest_api_auth.UserInfo'
     type: object
   internal_rest_api_auth.PostSignUpIn:
     properties:
@@ -51,6 +73,21 @@ definitions:
   internal_rest_api_auth.PostSignUpOut:
     properties:
       access_token:
+        type: string
+      user:
+        $ref: '#/definitions/internal_rest_api_auth.UserInfo'
+    type: object
+  internal_rest_api_auth.UserInfo:
+    properties:
+      email:
+        type: string
+      reputation_score:
+        type: integer
+      role:
+        type: string
+      user_id:
+        type: integer
+      username:
         type: string
     type: object
   internal_rest_api_user.GetUserByIDOut:
@@ -87,6 +124,11 @@ definitions:
       username:
         type: string
     type: object
+  internal_rest_api_user.PatchUpdateAvatarOut:
+    properties:
+      avatar_url:
+        type: string
+    type: object
   internal_rest_api_user.PatchUpdateUserIn:
     properties:
       bio:
@@ -98,12 +140,73 @@ definitions:
       username:
         type: string
     type: object
+  internal_rest_api_user.PatchUpdateUserOut:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      email:
+        type: string
+      reputation_score:
+        type: integer
+      role:
+        type: string
+      user_id:
+        type: integer
+      username:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
   title: lyryx API
   version: "1.0"
 paths:
+  /v1/artist:
+    post:
+      consumes:
+      - application/json
+      description: Создает нового артиста по имени и био. Доступно только модератору.
+      parameters:
+      - description: Параметры артиста
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_rest_api_artist.PostArtistIn'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Артист успешно создан
+          schema:
+            $ref: '#/definitions/internal_rest_api_artist.PostArtistOut'
+        "400":
+          description: Некорректный запрос
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "403":
+          description: Недостаточно прав
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "409":
+          description: Имя артиста уже занято
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      security:
+      - ApiKeyAuth: []
+      summary: Создание артиста.
+      tags:
+      - artist
   /v1/artist/{id}:
     get:
       description: Возвращает полную информацию о профиле артиста по его id.
@@ -120,6 +223,10 @@ paths:
           description: Успешный ответ с профилем артиста
           schema:
             $ref: '#/definitions/internal_rest_api_artist.GetArtistByIDOut'
+        "400":
+          description: Некорректный id артиста
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
         "404":
           description: Артист не найден
           schema:
@@ -174,7 +281,7 @@ paths:
           schema:
             $ref: '#/definitions/echo.HTTPError'
         "404":
-          description: Информация не найдена
+          description: Неверный email или пароль
           schema:
             $ref: '#/definitions/echo.HTTPError'
         "500":
@@ -199,6 +306,8 @@ paths:
           description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/echo.HTTPError'
+      security:
+      - ApiKeyAuth: []
       summary: Выход из аккаунта
       tags:
       - auth
@@ -222,10 +331,6 @@ paths:
             $ref: '#/definitions/internal_rest_api_auth.PostSignUpOut'
         "400":
           description: Некорректный запрос
-          schema:
-            $ref: '#/definitions/echo.HTTPError'
-        "404":
-          description: Информация не найдена
           schema:
             $ref: '#/definitions/echo.HTTPError'
         "409":
@@ -255,6 +360,10 @@ paths:
           description: Успешный ответ с профилем пользователя
           schema:
             $ref: '#/definitions/internal_rest_api_user.GetUserByIDOut'
+        "400":
+          description: Некорректный id пользователя
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
         "404":
           description: Пользователь не найден
           schema:
@@ -281,10 +390,16 @@ paths:
           description: Пользователь не аутентифицирован
           schema:
             $ref: '#/definitions/echo.HTTPError'
+        "404":
+          description: Пользователь не найден
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
         "500":
           description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/echo.HTTPError'
+      security:
+      - ApiKeyAuth: []
       summary: Получение данных своего профиля.
       tags:
       - user
@@ -303,8 +418,10 @@ paths:
       produces:
       - application/json
       responses:
-        "204":
-          description: No Content
+        "200":
+          description: Профиль пользователя обновлен
+          schema:
+            $ref: '#/definitions/internal_rest_api_user.PatchUpdateUserOut'
         "400":
           description: Некорректный запрос
           schema:
@@ -325,6 +442,8 @@ paths:
           description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/echo.HTTPError'
+      security:
+      - ApiKeyAuth: []
       summary: Частичное обновление профиля пользователя
       tags:
       - user
@@ -343,8 +462,10 @@ paths:
       produces:
       - application/json
       responses:
-        "204":
-          description: No Content
+        "200":
+          description: Аватар пользователя обновлен
+          schema:
+            $ref: '#/definitions/internal_rest_api_user.PatchUpdateAvatarOut'
         "400":
           description: Некорректный запрос
           schema:
@@ -361,6 +482,8 @@ paths:
           description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/echo.HTTPError'
+      security:
+      - ApiKeyAuth: []
       summary: Обновление аватарки пользователя
       tags:
       - user

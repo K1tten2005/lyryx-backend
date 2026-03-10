@@ -15,6 +15,75 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/v1/artist": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Создает нового артиста по имени и био. Доступно только модератору.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "artist"
+                ],
+                "summary": "Создание артиста.",
+                "parameters": [
+                    {
+                        "description": "Параметры артиста",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_artist.PostArtistIn"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Артист успешно создан",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_artist.PostArtistOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не аутентифицирован",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Недостаточно прав",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "409": {
+                        "description": "Имя артиста уже занято",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/artist/{id}": {
             "get": {
                 "description": "Возвращает полную информацию о профиле артиста по его id.",
@@ -39,6 +108,12 @@ const docTemplate = `{
                         "description": "Успешный ответ с профилем артиста",
                         "schema": {
                             "$ref": "#/definitions/internal_rest_api_artist.GetArtistByIDOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный id артиста",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
                         }
                     },
                     "404": {
@@ -124,7 +199,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Информация не найдена",
+                        "description": "Неверный email или пароль",
                         "schema": {
                             "$ref": "#/definitions/echo.HTTPError"
                         }
@@ -140,6 +215,11 @@ const docTemplate = `{
         },
         "/v1/auth/sign-out": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -202,12 +282,6 @@ const docTemplate = `{
                             "$ref": "#/definitions/echo.HTTPError"
                         }
                     },
-                    "404": {
-                        "description": "Информация не найдена",
-                        "schema": {
-                            "$ref": "#/definitions/echo.HTTPError"
-                        }
-                    },
                     "409": {
                         "description": "Пользователь уже зарегистрирован",
                         "schema": {
@@ -225,6 +299,11 @@ const docTemplate = `{
         },
         "/v1/user/me": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Возвращает полную информацию о профиле текущего пользователя, идентифицированного по access_token.",
                 "produces": [
                     "application/json"
@@ -246,6 +325,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/echo.HTTPError"
                         }
                     },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
@@ -255,6 +340,11 @@ const docTemplate = `{
                 }
             },
             "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Обновляет email, username, bio или password текущего пользователя. Достаточно передать только нужные поля.",
                 "consumes": [
                     "application/json"
@@ -278,8 +368,11 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content"
+                    "200": {
+                        "description": "Профиль пользователя обновлен",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_user.PatchUpdateUserOut"
+                        }
                     },
                     "400": {
                         "description": "Некорректный запрос",
@@ -316,6 +409,11 @@ const docTemplate = `{
         },
         "/v1/user/me/avatar": {
             "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Принимает avatar в multipart/form-data, валидирует изображение, загружает в MinIO и обновляет ссылку на аватар текущего пользователя.",
                 "consumes": [
                     "multipart/form-data"
@@ -337,8 +435,11 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content"
+                    "200": {
+                        "description": "Аватар пользователя обновлен",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_user.PatchUpdateAvatarOut"
+                        }
                     },
                     "400": {
                         "description": "Некорректный запрос",
@@ -393,6 +494,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/internal_rest_api_user.GetUserByIDOut"
                         }
                     },
+                    "400": {
+                        "description": "Некорректный id пользователя",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
                     "404": {
                         "description": "Пользователь не найден",
                         "schema": {
@@ -417,6 +524,37 @@ const docTemplate = `{
             }
         },
         "internal_rest_api_artist.GetArtistByIDOut": {
+            "type": "object",
+            "properties": {
+                "artist_id": {
+                    "type": "integer"
+                },
+                "avatar_url": {
+                    "type": "string"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_artist.PostArtistIn": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "bio": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_artist.PostArtistOut": {
             "type": "object",
             "properties": {
                 "artist_id": {
@@ -461,6 +599,9 @@ const docTemplate = `{
             "properties": {
                 "access_token": {
                     "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/internal_rest_api_auth.UserInfo"
                 }
             }
         },
@@ -487,6 +628,29 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "access_token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/internal_rest_api_auth.UserInfo"
+                }
+            }
+        },
+        "internal_rest_api_auth.UserInfo": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "reputation_score": {
+                    "type": "integer"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "username": {
                     "type": "string"
                 }
             }
@@ -543,6 +707,14 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_rest_api_user.PatchUpdateAvatarOut": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_rest_api_user.PatchUpdateUserIn": {
             "type": "object",
             "properties": {
@@ -554,6 +726,32 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_user.PatchUpdateUserOut": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "reputation_score": {
+                    "type": "integer"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
                 },
                 "username": {
                     "type": "string"
