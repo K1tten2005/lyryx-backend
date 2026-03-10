@@ -1,5 +1,13 @@
 package auth
 
+type UserInfo struct {
+	UserID          int    `json:"user_id"`
+	Email           string `json:"email"`
+	Username        string `json:"username"`
+	ReputationScore int    `json:"reputation_score"`
+	Role            string `json:"role"`
+}
+
 // sign-up
 type PostSignUpIn struct {
 	Username string `json:"username" validate:"required"`
@@ -8,11 +16,8 @@ type PostSignUpIn struct {
 }
 
 type PostSignUpOut struct {
-	Username        string `json:"username"`
-	Email           string `json:"email"`
-	Role            string `json:"role"`
-	ReputationScore int    `json:"reputation"`
-	AccessToken     string `json:"access_token"`
+	User        UserInfo `json:"user"`
+	AccessToken string   `json:"access_token"`
 }
 
 // sign-in
@@ -22,11 +27,8 @@ type PostSignInIn struct {
 }
 
 type PostSignInOut struct {
-	Username        string `json:"username"`
-	Email           string `json:"email"`
-	Role            string `json:"role"`
-	ReputationScore int    `json:"reputation"`
-	AccessToken     string `json:"access_token"`
+	User        UserInfo `json:"user"`
+	AccessToken string   `json:"access_token"`
 }
 
 // refresh
@@ -35,7 +37,6 @@ type PostRefreshTokenOut struct {
 }
 
 // update
-
 type PutUpdateUserIn struct {
 	Username string `json:"username" validate:"required"`
 	Email    string `json:"email" validate:"required"`

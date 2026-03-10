@@ -212,11 +212,14 @@ func signUpInToOpts(req *PostSignUpIn) (dto.SignUpOpts, error) {
 
 func signUpOptsToOut(opts dto.UserInfo, accessToken string) PostSignUpOut {
 	return PostSignUpOut{
-		Username:        opts.Username,
-		Email:           opts.Email,
-		Role:            opts.Role,
-		ReputationScore: opts.ReputationScore,
-		AccessToken:     accessToken,
+		User: UserInfo{
+			UserID:          opts.UserID,
+			Email:           opts.Email,
+			Username:        opts.Username,
+			ReputationScore: opts.ReputationScore,
+			Role:            opts.Role,
+		},
+		AccessToken: accessToken,
 	}
 }
 
@@ -307,11 +310,14 @@ func signInInToOpts(req *PostSignInIn) (dto.SignInOpts, error) {
 
 func signInOptsToOut(opts dto.UserInfo, accessToken string) PostSignInOut {
 	return PostSignInOut{
-		Username:        opts.Username,
-		Email:           opts.Email,
-		Role:            opts.Role,
-		ReputationScore: opts.ReputationScore,
-		AccessToken:     accessToken,
+		User: UserInfo{
+			UserID:          opts.UserID,
+			Email:           opts.Email,
+			Username:        opts.Username,
+			ReputationScore: opts.ReputationScore,
+			Role:            opts.Role,
+		},
+		AccessToken: accessToken,
 	}
 }
 
