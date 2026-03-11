@@ -113,20 +113,26 @@ func main() {
 	authHandlers.RegisterHandlers(echoHandler, authMiddleware)
 
 	userStorage := userStoragePkg.NewStorage(db, logger)
-	avatarStorage := userStoragePkg.NewMinIOAvatarStorage(minioClient, userBucketName, cfg.MinIOPublicBaseURL)
-	if err := avatarStorage.EnsureBucketPublic(context.Background()); err != nil {
+	userAvatarStorage := userStoragePkg.NewMinIOAvatarStorage(minioClient, userBucketName, cfg.MinIOPublicBaseURL)
+	if err := userAvatarStorage.EnsureBucketPublic(context.Background()); err != nil {
 		log.Errorf("failed ensure minio bucket public policy: %v", err)
 		return
 	}
 	userWrappers := userWrappersPkg.NewStorage(userStorage)
-	avatarWrapper := userWrappersPkg.NewUserAvatarStorage(avatarStorage)
-	userUsecase := userUsecasePkg.NewUsecase(userWrappers, avatarWrapper, logger)
+	userAvatarWrapper := userWrappersPkg.NewUserAvatarStorage(userAvatarStorage)
+	userUsecase := userUsecasePkg.NewUsecase(userWrappers, userAvatarWrapper, logger)
 	userHandlers := userHandlersPkg.NewUserHandlers(userUsecase, claimsGetter, logger)
 	userHandlers.RegisterHandlers(echoHandler, authMiddleware)
 
 	artistStorage := artistStoragePkg.NewStorage(db, logger)
+	artistAvatarStorage := artistStoragePkg.NewMinIOAvatarStorage(minioClient, artistBucketName, cfg.MinIOPublicBaseURL)
+	if err := artistAvatarStorage.EnsureBucketPublic(context.Background()); err != nil {
+		log.Errorf("failed ensure minio bucket public policy: %v", err)
+		return
+	}
 	artistWrappers := artistWrappersPkg.NewStorage(artistStorage)
-	artistUsecase := artistUsecasePkg.NewUsecase(artistWrappers, logger)
+	artistAvatarWrapper := artistWrappersPkg.NewArtistAvatarStorage(artistAvatarStorage)
+	artistUsecase := artistUsecasePkg.NewUsecase(artistWrappers, artistAvatarWrapper, logger)
 	artistHandlers := artistHandlersPkg.NewArtistHandlers(artistUsecase, claimsGetter, logger)
 	artistHandlers.RegisterHandlers(echoHandler, authMiddleware, checkRoleMiddleware)
 

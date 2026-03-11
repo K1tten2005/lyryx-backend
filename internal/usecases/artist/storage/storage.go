@@ -108,3 +108,77 @@ func (s *Storage) CreateArtist(_ context.Context, filter CreateArtistFilter) (Ar
 
 	return artist, nil
 }
+
+func (s *Storage) UpdateArtistInfo(_ context.Context, filter UpdateArtistInfoFilter) (Artist, error) {
+	query := `
+		UPDATE artist
+		SET
+			name = COALESCE($1, name),
+			bio = COALESCE($2, bio)
+		WHERE id = $3
+		RETURNING id, name, bio, avatar_url
+	`
+
+	row := s.db.QueryRow(query, filter.Name, filter.Bio, filter.ArtistID)
+
+	var artist Artist
+	var bio sql.NullString
+	var avatarURL sql.NullString
+	if err := row.Scan(
+		&artist.ArtistID,
+		&artist.Name,
+		&bio,
+		&avatarURL,
+	); err != nil {
+		if isUniqueViolation(err, "artist_name_key") {
+			return Artist{}, fmt.Errorf("query: %w", ErrNameTaken)
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			return Artist{}, fmt.Errorf("query: %w", ErrArtistNotFound)
+		}
+		return Artist{}, fmt.Errorf("query: %v", err)
+	}
+	if bio.Valid {
+		artist.Bio = bio.String
+	}
+	if avatarURL.Valid {
+		artist.AvatarURL = avatarURL.String
+	}
+	return artist, nil
+}
+
+func (s *Storage) UpdateArtistAvatar(_ context.Context, filter UpdateArtistAvatarFilter) error {
+	query := `
+		UPDATE artist
+		SET avatar_url = $2
+		WHERE id = $1
+	`
+
+	res, err := s.db.Exec(query, filter.ArtistID, filter.AvatarURL)
+	if err != nil {
+		return fmt.Errorf("exec patch update avatar: %v", err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %v", err)
+	}
+	if rowsAffected == 0 {
+		return ErrArtistNotFound
+	}
+
+	return nil
+}
+
+func isUniqueViolation(err error, constraint string) bool {
+	pqErr, ok := err.(*pq.Error)
+	if !ok {
+		return false
+	}
+
+	if pqErr.Code != "23505" {
+		return false
+	}
+
+	return pqErr.Constraint == constraint
+}

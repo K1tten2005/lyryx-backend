@@ -129,6 +129,134 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Обновляет name, bio артиста по его id. Достаточно передать только нужные поля.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "artist"
+                ],
+                "summary": "Частичное обновление профиля артиста",
+                "parameters": [
+                    {
+                        "description": "Параметры обновления профиля артиста",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_artist.PatchUpdateArtistIn"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Профиль артиста обновлен",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_artist.PatchUpdateArtistOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не аутентифицирован",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Артист не найден",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "409": {
+                        "description": "Артист с таким именем уже существует",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/artist/{id}/avatar": {
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Принимает avatar в multipart/form-data, валидирует изображение, загружает в MinIO и обновляет ссылку на аватар артиста.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "artist"
+                ],
+                "summary": "Обновление аватарки артиста",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Файл аватарки (png/jpeg)",
+                        "name": "avatar",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Аватар артиста обновлен",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_artist.PatchUpdateAvatarOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не аутентифицирован",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Артист не найден",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
             }
         },
         "/v1/auth/refresh": {
@@ -428,7 +556,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "file",
-                        "description": "Файл аватарки (png/jpeg/gif)",
+                        "description": "Файл аватарки (png/jpeg)",
                         "name": "avatar",
                         "in": "formData",
                         "required": true
@@ -526,16 +654,58 @@ const docTemplate = `{
         "internal_rest_api_artist.GetArtistByIDOut": {
             "type": "object",
             "properties": {
-                "artist_id": {
-                    "type": "integer"
-                },
                 "avatar_url": {
                     "type": "string"
                 },
                 "bio": {
                     "type": "string"
                 },
+                "id": {
+                    "type": "integer"
+                },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_artist.PatchUpdateArtistIn": {
+            "type": "object",
+            "required": [
+                "artistID"
+            ],
+            "properties": {
+                "artistID": {
+                    "type": "integer"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_artist.PatchUpdateArtistOut": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_artist.PatchUpdateAvatarOut": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
                     "type": "string"
                 }
             }
@@ -557,14 +727,14 @@ const docTemplate = `{
         "internal_rest_api_artist.PostArtistOut": {
             "type": "object",
             "properties": {
-                "artist_id": {
-                    "type": "integer"
-                },
                 "avatar_url": {
                     "type": "string"
                 },
                 "bio": {
                     "type": "string"
+                },
+                "id": {
+                    "type": "integer"
                 },
                 "name": {
                     "type": "string"

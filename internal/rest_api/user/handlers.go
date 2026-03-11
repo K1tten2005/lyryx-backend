@@ -275,7 +275,7 @@ func patchUpdateUserToOut(user dto.User) PatchUpdateUserOut {
 // @Tags         user
 // @Accept       mpfd
 // @Produce      json
-// @Param        avatar formData file true "Файл аватарки (png/jpeg/gif)"
+// @Param        avatar formData file true "Файл аватарки (png/jpeg)"
 // @Success      200    {object} PatchUpdateAvatarOut "Аватар пользователя обновлен"
 // @Failure      400    {object} echo.HTTPError      "Некорректный запрос"
 // @Failure      401    {object} echo.HTTPError      "Пользователь не аутентифицирован"
