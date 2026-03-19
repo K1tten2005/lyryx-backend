@@ -121,7 +121,7 @@ func generateTokens(userInfo *dto.UserInfo, jwtSecret []byte) (
 }
 
 // PostSignUp godoc
-// @Summary       Регистрация пользователя
+// @Summary      Регистрация пользователя
 // @Tags         auth
 // @Accept       json
 // @Produce      json
