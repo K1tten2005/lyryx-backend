@@ -8,14 +8,17 @@ import (
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/middlewares"
 
-	//"github.com/K1tten2005/lyryx-backend/internal/rest_api/middlewares"
 	artistHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/artist"
 	authHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
 	userHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/user"
+	songHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/song"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/utils"
 	artistUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/artist"
 	artistStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/artist/storage"
 	artistWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/artist/wrappers"
+	songUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/song"
+	songStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/song/storage"
+	songWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/song/wrappers"
 	authUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth"
 	authStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/storage"
 	authWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/wrappers"
@@ -39,6 +42,7 @@ import (
 var (
 	userBucketName   = "user"
 	artistBucketName = "artist"
+	songBucketName   = "song"
 )
 
 func init() {
@@ -135,6 +139,18 @@ func main() {
 	artistUsecase := artistUsecasePkg.NewUsecase(artistWrappers, artistAvatarWrapper, logger)
 	artistHandlers := artistHandlersPkg.NewArtistHandlers(artistUsecase, claimsGetter, logger)
 	artistHandlers.RegisterHandlers(echoHandler, authMiddleware, checkRoleMiddleware)
+
+	songStorage := songStoragePkg.NewStorage(db, logger)
+	songCoverStorage := songStoragePkg.NewMinIOCoverStorage(minioClient, songBucketName, cfg.MinIOPublicBaseURL)
+	if err := songCoverStorage.EnsureBucketPublic(context.Background()); err != nil {
+		log.Errorf("failed ensure minio bucket public policy: %v", err)
+		return
+	}
+	songWrappers := songWrappersPkg.NewStorage(songStorage)
+	songCoverWrapper := songWrappersPkg.NewSongCoverStorage(songCoverStorage)
+	songUsecase := songUsecasePkg.NewUsecase(songWrappers, songCoverWrapper, logger)
+	songHandlers := songHandlersPkg.NewSongHandlers(songUsecase, claimsGetter, logger)
+	songHandlers.RegisterHandlers(echoHandler, authMiddleware, checkRoleMiddleware)
 
 	echoHandler.Use(echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
 		AllowOrigins: []string{"*"}, // На этапе разработки можно всё

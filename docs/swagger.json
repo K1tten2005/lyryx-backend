@@ -418,6 +418,238 @@
                 }
             }
         },
+        "/v1/song": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Создает новой песни по заданным параметрам. Доступно только модератору.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "song"
+                ],
+                "summary": "Создание песни.",
+                "parameters": [
+                    {
+                        "description": "Параметры песни",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_song.PostSongIn"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Песня успешно создана",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_song.PostSongOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не аутентифицирован",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Недостаточно прав",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/song/{id}": {
+            "get": {
+                "description": "Возвращает полную информацию о песне по ее id.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "artist"
+                ],
+                "summary": "Получение данных песни по ее id.",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Song ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешный ответ с информацией о песне",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_song.GetSongByIDOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный id песни",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Песня не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Обновляет title, lyrics, artist_id, release_date песни по ее id. Достаточно передать только нужные поля.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "song"
+                ],
+                "summary": "Частичное обновление информации о песне",
+                "parameters": [
+                    {
+                        "description": "Параметры обновления информации о песне",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_song.PatchUpdateSongIn"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Страница песни обновлена",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_song.PatchUpdateSongOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не аутентифицирован",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Песня не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/song/{id}/cover": {
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Принимает cover в multipart/form-data, валидирует изображение, загружает в MinIO и обновляет ссылку на обложку песни.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "song"
+                ],
+                "summary": "Обновление обложки песни",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Файл обложки (png/jpeg)",
+                        "name": "avatar",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Обложка песни обновлена",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_song.PatchUpdateCoverOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не аутентифицирован",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Песня не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/user/me": {
             "get": {
                 "security": [
@@ -815,6 +1047,158 @@
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_song.Artist": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_song.GetSongByIDOut": {
+            "type": "object",
+            "properties": {
+                "artist": {
+                    "$ref": "#/definitions/internal_rest_api_song.Artist"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "cover_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "release_date": {
+                    "type": "string"
+                },
+                "views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_rest_api_song.PatchUpdateCoverOut": {
+            "type": "object",
+            "properties": {
+                "cover_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_song.PatchUpdateSongIn": {
+            "type": "object",
+            "required": [
+                "songID"
+            ],
+            "properties": {
+                "artist_id": {
+                    "type": "integer"
+                },
+                "lyrics": {
+                    "type": "string"
+                },
+                "release_date": {
+                    "type": "string"
+                },
+                "songID": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_song.PatchUpdateSongOut": {
+            "type": "object",
+            "properties": {
+                "artist": {
+                    "$ref": "#/definitions/internal_rest_api_song.Artist"
+                },
+                "cover_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lyrics": {
+                    "type": "string"
+                },
+                "release_date": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_rest_api_song.PostSongIn": {
+            "type": "object",
+            "required": [
+                "artist_id",
+                "lyrics",
+                "release_date",
+                "title"
+            ],
+            "properties": {
+                "artist_id": {
+                    "type": "integer"
+                },
+                "cover_url": {
+                    "type": "string"
+                },
+                "lyrics": {
+                    "type": "string"
+                },
+                "release_date": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_song.PostSongOut": {
+            "type": "object",
+            "properties": {
+                "artist": {
+                    "$ref": "#/definitions/internal_rest_api_song.Artist"
+                },
+                "cover_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lyrics": {
+                    "type": "string"
+                },
+                "release_date": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "views": {
+                    "type": "integer"
                 }
             }
         },

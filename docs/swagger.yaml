@@ -117,6 +117,106 @@ definitions:
       username:
         type: string
     type: object
+  internal_rest_api_song.Artist:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  internal_rest_api_song.GetSongByIDOut:
+    properties:
+      artist:
+        $ref: '#/definitions/internal_rest_api_song.Artist'
+      bio:
+        type: string
+      cover_url:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      release_date:
+        type: string
+      views:
+        type: integer
+    type: object
+  internal_rest_api_song.PatchUpdateCoverOut:
+    properties:
+      cover_url:
+        type: string
+    type: object
+  internal_rest_api_song.PatchUpdateSongIn:
+    properties:
+      artist_id:
+        type: integer
+      lyrics:
+        type: string
+      release_date:
+        type: string
+      songID:
+        type: integer
+      title:
+        type: string
+    required:
+    - songID
+    type: object
+  internal_rest_api_song.PatchUpdateSongOut:
+    properties:
+      artist:
+        $ref: '#/definitions/internal_rest_api_song.Artist'
+      cover_url:
+        type: string
+      id:
+        type: integer
+      lyrics:
+        type: string
+      release_date:
+        type: string
+      title:
+        type: string
+      views:
+        type: integer
+    type: object
+  internal_rest_api_song.PostSongIn:
+    properties:
+      artist_id:
+        type: integer
+      cover_url:
+        type: string
+      lyrics:
+        type: string
+      release_date:
+        type: string
+      title:
+        type: string
+    required:
+    - artist_id
+    - lyrics
+    - release_date
+    - title
+    type: object
+  internal_rest_api_song.PostSongOut:
+    properties:
+      artist:
+        $ref: '#/definitions/internal_rest_api_song.Artist'
+      cover_url:
+        type: string
+      id:
+        type: integer
+      lyrics:
+        type: string
+      release_date:
+        type: string
+      title:
+        type: string
+      views:
+        type: integer
+    type: object
   internal_rest_api_user.GetUserByIDOut:
     properties:
       avatar_url:
@@ -455,6 +555,157 @@ paths:
       summary: Регистрация пользователя
       tags:
       - auth
+  /v1/song:
+    post:
+      consumes:
+      - application/json
+      description: Создает новой песни по заданным параметрам. Доступно только модератору.
+      parameters:
+      - description: Параметры песни
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_rest_api_song.PostSongIn'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Песня успешно создана
+          schema:
+            $ref: '#/definitions/internal_rest_api_song.PostSongOut'
+        "400":
+          description: Некорректный запрос
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "403":
+          description: Недостаточно прав
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      security:
+      - ApiKeyAuth: []
+      summary: Создание песни.
+      tags:
+      - song
+  /v1/song/{id}:
+    get:
+      description: Возвращает полную информацию о песне по ее id.
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ с информацией о песне
+          schema:
+            $ref: '#/definitions/internal_rest_api_song.GetSongByIDOut'
+        "400":
+          description: Некорректный id песни
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "404":
+          description: Песня не найдена
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      summary: Получение данных песни по ее id.
+      tags:
+      - artist
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет title, lyrics, artist_id, release_date песни по ее id.
+        Достаточно передать только нужные поля.
+      parameters:
+      - description: Параметры обновления информации о песне
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_rest_api_song.PatchUpdateSongIn'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Страница песни обновлена
+          schema:
+            $ref: '#/definitions/internal_rest_api_song.PatchUpdateSongOut'
+        "400":
+          description: Некорректный запрос
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "404":
+          description: Песня не найдена
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      security:
+      - ApiKeyAuth: []
+      summary: Частичное обновление информации о песне
+      tags:
+      - song
+  /v1/song/{id}/cover:
+    patch:
+      consumes:
+      - multipart/form-data
+      description: Принимает cover в multipart/form-data, валидирует изображение,
+        загружает в MinIO и обновляет ссылку на обложку песни.
+      parameters:
+      - description: Файл обложки (png/jpeg)
+        in: formData
+        name: avatar
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Обложка песни обновлена
+          schema:
+            $ref: '#/definitions/internal_rest_api_song.PatchUpdateCoverOut'
+        "400":
+          description: Некорректный запрос
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "404":
+          description: Песня не найдена
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      security:
+      - ApiKeyAuth: []
+      summary: Обновление обложки песни
+      tags:
+      - song
   /v1/user/{id}:
     get:
       description: Возвращает полную информацию о профиле пользователя по его id.
