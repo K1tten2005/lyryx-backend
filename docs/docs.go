@@ -1884,6 +1884,9 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
+                },
+                "views": {
+                    "type": "integer"
                 }
             }
         },

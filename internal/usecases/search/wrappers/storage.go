@@ -43,6 +43,7 @@ func (s *Storage) SearchSongs(ctx context.Context, opts dto.GetSearchOpts) ([]dt
 			ID:            song.ID,
 			Title:         song.Title,
 			LyricsSnippet: song.LyricsSnippet,
+			Views:         song.Views,
 			Artist: dto.ArtistInfo{
 				ID:        song.Artist.ID,
 				Name:      song.Artist.Name,
@@ -73,6 +74,7 @@ func (s *Storage) SearchSongsByLyrics(ctx context.Context, opts dto.GetSearchOpt
 			ID:            song.ID,
 			Title:         song.Title,
 			LyricsSnippet: song.LyricsSnippet,
+			Views:         song.Views,
 			Artist: dto.ArtistInfo{
 				ID:        song.Artist.ID,
 				Name:      song.Artist.Name,

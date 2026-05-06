@@ -45,90 +45,44 @@ func (u *Usecase) GetSearch(ctx context.Context, opts dto.GetSearchOpts) (dto.Se
 
 	// Поиск песен по названию
 	g.Go(func() error {
-		res, err := u.storage.SearchSongs(ctx, opts)
+		var err error
+		songs, err = u.storage.SearchSongs(ctx, opts)
 		if err != nil {
 			return fmt.Errorf("search songs: %w", err)
-		}
-		if len(res) == 0 {
-			return nil
-		}
-		for _, s := range res {
-			songs = append(songs, dto.SongInfo{
-				ID:            s.ID,
-				Title:         s.Title,
-				LyricsSnippet: s.LyricsSnippet,
-				Artist: dto.ArtistInfo{
-					ID:        s.Artist.ID,
-					Name:      s.Artist.Name,
-					AvatarURL: s.Artist.AvatarURL,
-				},
-				CoverURL: s.CoverURL,
-			})
 		}
 		return nil
 	})
 
 	// Поиск песен по тексту
 	g.Go(func() error {
-		res, err := u.storage.SearchSongsByLyrics(ctx, opts)
+		var err error
+		lyrics, err = u.storage.SearchSongsByLyrics(ctx, opts)
 		if err != nil {
 			return fmt.Errorf("search lyrics: %w", err)
 		}
-		if len(res) == 0 {
-			return nil
-		}
-		for _, s := range res {
-			lyrics = append(lyrics, dto.SongInfo{
-				ID:            s.ID,
-				Title:         s.Title,
-				LyricsSnippet: s.LyricsSnippet,
-				Artist: dto.ArtistInfo{
-					ID:        s.Artist.ID,
-					Name:      s.Artist.Name,
-					AvatarURL: s.Artist.AvatarURL,
-				},
-				CoverURL: s.CoverURL,
-			})
-		}
+
 		return nil
 	})
 
 	// Поиск артистов
 	g.Go(func() error {
-		res, err := u.storage.SearchArtists(ctx, opts)
+		var err error
+		artists, err = u.storage.SearchArtists(ctx, opts)
 		if err != nil {
 			return fmt.Errorf("search artists: %w", err)
 		}
-		if len(res) == 0 {
-			return nil
-		}
-		for _, a := range res {
-			artists = append(artists, dto.ArtistInfo{
-				ID:        a.ID,
-				Name:      a.Name,
-				AvatarURL: a.AvatarURL,
-			})
-		}
+
 		return nil
 	})
 
 	// Поиск пользователей
 	g.Go(func() error {
-		res, err := u.storage.SearchUsers(ctx, opts)
+		var err error
+		users, err = u.storage.SearchUsers(ctx, opts)
 		if err != nil {
 			return fmt.Errorf("search users: %w", err)
 		}
-		if len(res) == 0 {
-			return nil
-		}
-		for _, usr := range res {
-			users = append(users, dto.UserInfo{
-				UserID:          usr.UserID,
-				Username:        usr.Username,
-				AvatarURL:       usr.AvatarURL,
-				ReputationScore: usr.ReputationScore,
-			})
-		}
+		
 		return nil
 	})
 

@@ -127,6 +127,7 @@ func mapSongInfos(src []dto.SongInfo) []SongInfo {
             ID:            s.ID,
             Title:         s.Title,
             LyricsSnippet: s.LyricsSnippet,
+			Views:         s.Views,
             Artist: ArtistInfo{
                 ID:        s.Artist.ID,
                 Name:      s.Artist.Name,

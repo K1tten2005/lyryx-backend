@@ -18,6 +18,7 @@ type SongInfo struct {
 	LyricsSnippet string     `json:"lyrics_snippet"`
 	Artist        ArtistInfo `json:"artist"`
 	CoverURL      string     `json:"cover_url,omitempty"`
+	Views         int        `json:"views"`
 }
 
 type ArtistInfo struct {
@@ -30,5 +31,5 @@ type UserInfo struct {
 	UserID          int    `json:"user_id"`
 	Username        string `json:"username"`
 	AvatarURL       string `json:"avatar_url,omitempty"`
-	ReputationScore int    `json:"reputation_score,omitempty"`
+	ReputationScore int    `json:"reputation_score"`
 }

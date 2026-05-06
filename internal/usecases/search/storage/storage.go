@@ -33,6 +33,7 @@ func (s *Storage) SearchSongs(ctx context.Context, filter GetSearchFilter) ([]So
 		s.id,
 		s.title,
 		s.cover_url,
+		s.views,
 		a.id,
 		a.name,
 		a.avatar_url,
@@ -90,7 +91,7 @@ func (s *Storage) SearchSongs(ctx context.Context, filter GetSearchFilter) ([]So
 			highlight    sql.NullString
 		)
 
-		err := rows.Scan(&song.ID, &song.Title, &coverURL, &artist.ID,
+		err := rows.Scan(&song.ID, &song.Title, &coverURL, &song.Views, &artist.ID,
 			&artist.Name, &artistAvatar, &highlight,
 		)
 		if err != nil {
@@ -140,6 +141,7 @@ func (s *Storage) SearchSongsByLyrics(
 			s.id,
 			s.title,
 			s.cover_url,
+			s.views,
 			s.artist_id,
 			s.lyrics,
 			ts_rank_cd(
@@ -162,6 +164,7 @@ func (s *Storage) SearchSongsByLyrics(
 		m.id,
 		m.title,
 		m.cover_url,
+		m.views,
 		a.id,
 		a.name,
 		a.avatar_url,
@@ -202,7 +205,7 @@ func (s *Storage) SearchSongsByLyrics(
 			snippet      sql.NullString
 		)
 
-		err := rows.Scan(&song.ID, &song.Title, &coverURL, &artist.ID,
+		err := rows.Scan(&song.ID, &song.Title, &coverURL, &song.Views, &artist.ID,
 			&artist.Name, &artistAvatar, &snippet,
 		)
 		if err != nil {

@@ -18,6 +18,7 @@ type SongInfo struct {
 	LyricsSnippet string
 	Artist        ArtistInfo
 	CoverURL      string
+	Views         int
 }
 
 type ArtistInfo struct {
