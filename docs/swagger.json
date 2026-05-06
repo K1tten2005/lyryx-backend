@@ -705,6 +705,48 @@
                 }
             }
         },
+        "/v1/search": {
+            "get": {
+                "description": "Полнотекстовый поиск по песням, артистам и пользователям с поддержкой русского и английского языков",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "search"
+                ],
+                "summary": "Поиск по сайту",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Поисковый запрос",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Лимит результатов на категорию",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_search.GetSearchOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/song": {
             "post": {
                 "security": [
@@ -1762,6 +1804,86 @@
                 },
                 "role": {
                     "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_search.ArtistInfo": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_search.GetSearchOut": {
+            "type": "object",
+            "properties": {
+                "artists": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_rest_api_search.ArtistInfo"
+                    }
+                },
+                "lyrics_matched_songs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_rest_api_search.SongInfo"
+                    }
+                },
+                "songs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_rest_api_search.SongInfo"
+                    }
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_rest_api_search.UserInfo"
+                    }
+                }
+            }
+        },
+        "internal_rest_api_search.SongInfo": {
+            "type": "object",
+            "properties": {
+                "artist": {
+                    "$ref": "#/definitions/internal_rest_api_search.ArtistInfo"
+                },
+                "cover_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lyrics_snippet": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_search.UserInfo": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "reputation_score": {
+                    "type": "integer"
                 },
                 "user_id": {
                     "type": "integer"

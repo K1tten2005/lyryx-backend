@@ -13,6 +13,7 @@ import (
 	authHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
 	songHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/song"
 	userHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/user"
+	searchHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/search"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/utils"
 	annotationUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/annotation"
 	annotationStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/annotation/storage"
@@ -20,6 +21,9 @@ import (
 	artistUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/artist"
 	artistStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/artist/storage"
 	artistWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/artist/wrappers"
+	searchUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/search"
+	searchStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/search/storage"
+	searchWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/search/wrappers"
 	authUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth"
 	authStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/storage"
 	authWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/wrappers"
@@ -174,6 +178,12 @@ func main() {
 	annotationUsecase := annotationUsecasePkg.NewUsecase(annotationWrappers, songUsecase, userUsecase, logger)
 	annotationHandlers := annotationHandlersPkg.NewHandlers(annotationUsecase, claimsGetter, logger)
 	annotationHandlers.RegisterHandlers(echoHandler, strictAuthMiddleware, optionalAuthMiddleware, checkRoleMiddleware)
+
+	searchStorage := searchStoragePkg.NewStorage(db, logger)
+	searchWrappers := searchWrappersPkg.NewStorage(searchStorage)
+	searchUsecase := searchUsecasePkg.NewUsecase(searchWrappers, logger)
+	searchHandlers := searchHandlersPkg.NewHandlers(searchUsecase, logger)
+	searchHandlers.RegisterHandlers(echoHandler, strictAuthMiddleware, checkRoleMiddleware)
 
 	echoHandler.Use(echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
 		AllowOrigins: []string{"*"}, // На этапе разработки можно всё
