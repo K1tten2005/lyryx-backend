@@ -8,8 +8,8 @@ type GetSongByIDIn struct {
 
 type GetSongByIDOut struct {
 	SongID      int       `json:"id"`
-	Title       string    `json:"name"`
-	Lyrics      string    `json:"bio"`
+	Title       string    `json:"title"`
+	Lyrics      string    `json:"lyrics"`
 	CoverURL    string    `json:"cover_url"`
 	ReleaseDate time.Time `json:"release_date"`
 	Views       int       `json:"views"`

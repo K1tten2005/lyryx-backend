@@ -1,3 +1,8 @@
+ifneq (,$(wildcard ./.env))
+    include .env
+    export
+endif
+
 docs:
 	swag init --parseDependency --parseInternal -g ./cmd/app/main.go
 
@@ -6,3 +11,4 @@ app-up:
 	
 migrate:
 	goose -dir db/migrations postgres "host=localhost user=user password=password dbname=lyryx sslmode=disable" up
+	PGPASSWORD=$(PG_PASSWORD) psql -h $(PG_HOST) -p $(PG_PORT) -U $(PG_USER) -d $(PG_DB) -f data/inserts.txt

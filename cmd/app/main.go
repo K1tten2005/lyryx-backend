@@ -8,20 +8,24 @@ import (
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/middlewares"
 
+	annotationHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/annotation"
 	artistHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/artist"
 	authHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
-	userHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/user"
 	songHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/song"
+	userHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/user"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/utils"
+	annotationUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/annotation"
+	annotationStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/annotation/storage"
+	annotationWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/annotation/wrappers"
 	artistUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/artist"
 	artistStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/artist/storage"
 	artistWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/artist/wrappers"
-	songUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/song"
-	songStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/song/storage"
-	songWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/song/wrappers"
 	authUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth"
 	authStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/storage"
 	authWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/wrappers"
+	songUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/song"
+	songStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/song/storage"
+	songWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/song/wrappers"
 	userUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/user"
 	userStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/user/storage"
 	userWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/user/wrappers"
@@ -92,14 +96,24 @@ func main() {
 	}
 
 	// Auth middleware.
-	authConfig := echojwt.Config{
-		NewClaimsFunc: func(_ echo.Context) jwt.Claims {
+	strictAuthMiddleware := echojwt.WithConfig(echojwt.Config{
+		NewClaimsFunc: func(c echo.Context) jwt.Claims {
 			return new(authHandlersPkg.JwtCustomClaims)
 		},
 		SigningKey: []byte(cfg.JWTSecret),
-	}
+	})
 
-	authMiddleware := echojwt.WithConfig(authConfig)
+	optionalAuthMiddleware := echojwt.WithConfig(echojwt.Config{
+    NewClaimsFunc: func(c echo.Context) jwt.Claims {
+        return new(authHandlersPkg.JwtCustomClaims)
+    },
+    SigningKey: []byte(cfg.JWTSecret),
+
+    ContinueOnIgnoredError: true,
+    ErrorHandler: func(c echo.Context, err error) error {
+        return nil
+    },
+})
 	checkRoleMiddleware := middlewares.NewRoleCheckerMiddleware(logger)
 
 	echoHandler := echo.New()
@@ -114,7 +128,7 @@ func main() {
 	authWrappers := authWrappersPkg.NewStorage(authStorage)
 	authUsecase := authUsecasePkg.NewUsecase(authWrappers, &authUsecasePkg.BcryptHasher{})
 	authHandlers := authHandlersPkg.New(authUsecase, []byte(cfg.JWTSecret), logger)
-	authHandlers.RegisterHandlers(echoHandler, authMiddleware)
+	authHandlers.RegisterHandlers(echoHandler, strictAuthMiddleware)
 
 	userStorage := userStoragePkg.NewStorage(db, logger)
 	userAvatarStorage := userStoragePkg.NewMinIOAvatarStorage(minioClient, userBucketName, cfg.MinIOPublicBaseURL)
@@ -126,7 +140,7 @@ func main() {
 	userAvatarWrapper := userWrappersPkg.NewUserAvatarStorage(userAvatarStorage)
 	userUsecase := userUsecasePkg.NewUsecase(userWrappers, userAvatarWrapper, logger)
 	userHandlers := userHandlersPkg.NewUserHandlers(userUsecase, claimsGetter, logger)
-	userHandlers.RegisterHandlers(echoHandler, authMiddleware)
+	userHandlers.RegisterHandlers(echoHandler, strictAuthMiddleware)
 
 	artistStorage := artistStoragePkg.NewStorage(db, logger)
 	artistAvatarStorage := artistStoragePkg.NewMinIOAvatarStorage(minioClient, artistBucketName, cfg.MinIOPublicBaseURL)
@@ -138,7 +152,7 @@ func main() {
 	artistAvatarWrapper := artistWrappersPkg.NewArtistAvatarStorage(artistAvatarStorage)
 	artistUsecase := artistUsecasePkg.NewUsecase(artistWrappers, artistAvatarWrapper, logger)
 	artistHandlers := artistHandlersPkg.NewArtistHandlers(artistUsecase, claimsGetter, logger)
-	artistHandlers.RegisterHandlers(echoHandler, authMiddleware, checkRoleMiddleware)
+	artistHandlers.RegisterHandlers(echoHandler, strictAuthMiddleware, checkRoleMiddleware)
 
 	songStorage := songStoragePkg.NewStorage(db, logger)
 	songCoverStorage := songStoragePkg.NewMinIOCoverStorage(minioClient, songBucketName, cfg.MinIOPublicBaseURL)
@@ -150,7 +164,13 @@ func main() {
 	songCoverWrapper := songWrappersPkg.NewSongCoverStorage(songCoverStorage)
 	songUsecase := songUsecasePkg.NewUsecase(songWrappers, songCoverWrapper, logger)
 	songHandlers := songHandlersPkg.NewSongHandlers(songUsecase, claimsGetter, logger)
-	songHandlers.RegisterHandlers(echoHandler, authMiddleware, checkRoleMiddleware)
+	songHandlers.RegisterHandlers(echoHandler, strictAuthMiddleware, checkRoleMiddleware)
+
+	annotationStorage := annotationStoragePkg.NewStorage(db, logger)
+	annotationWrappers := annotationWrappersPkg.NewStorage(annotationStorage)
+	annotationUsecase := annotationUsecasePkg.NewUsecase(annotationWrappers, songUsecase, userUsecase, logger)
+	annotationHandlers := annotationHandlersPkg.NewHandlers(annotationUsecase, claimsGetter, logger)
+	annotationHandlers.RegisterHandlers(echoHandler, strictAuthMiddleware, optionalAuthMiddleware, checkRoleMiddleware)
 
 	echoHandler.Use(echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
 		AllowOrigins: []string{"*"}, // На этапе разработки можно всё

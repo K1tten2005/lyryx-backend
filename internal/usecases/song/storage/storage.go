@@ -38,7 +38,7 @@ func (s *Storage) GetSongByID(ctx context.Context, songID int) (SongInfo, error)
         SELECT
             s.id, s.title, s.lyrics, s.cover_url, s.release_date, s.views,
             a.id, a.name, a.bio, a.avatar_url
-        FROM songs s
+        FROM song s
         INNER JOIN artist a ON s.artist_id = a.id
         WHERE s.id = $1
     `
@@ -53,7 +53,7 @@ func (s *Storage) GetSongByID(ctx context.Context, songID int) (SongInfo, error)
 func (s *Storage) CreateSong(ctx context.Context, filter CreateSongFilter) (SongInfo, error) {
 	query := `
         WITH new_song AS (
-            INSERT INTO songs (title, lyrics, cover_url, release_date, artist_id)
+            INSERT INTO song (title, lyrics, cover_url, release_date, artist_id)
             VALUES ($1, $2, $3, $4, $5)
             RETURNING id, title, lyrics, cover_url, release_date, views, artist_id
         )
@@ -90,7 +90,7 @@ func (s *Storage) CreateSong(ctx context.Context, filter CreateSongFilter) (Song
 func (s *Storage) UpdateSongInfo(ctx context.Context, filter UpdateSongInfoFilter) (SongInfo, error) {
 	query := `
         WITH updated_song AS (
-            UPDATE songs
+            UPDATE song
             SET
                 title = COALESCE($1, title),
                 artist_id = COALESCE($2, artist_id),
@@ -129,7 +129,7 @@ func (s *Storage) UpdateSongInfo(ctx context.Context, filter UpdateSongInfoFilte
 // ---------------------------------------------------------
 func (s *Storage) UpdateSongCover(ctx context.Context, filter UpdateSongCoverFilter) error {
 	query := `
-        UPDATE songs
+        UPDATE song
         SET cover_url = $2
         WHERE id = $1
     `

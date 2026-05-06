@@ -15,6 +15,297 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/v1/annotation/{id}": {
+            "get": {
+                "description": "Возвращает полную информацию об аннотации с контекстом песни",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "annotation"
+                ],
+                "summary": "Получение аннотации по ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Annotation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_annotation.GetAnnotationByIDOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Аннотация не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Удаляет аннотацию. Доступно только автору или модератору.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "annotation"
+                ],
+                "summary": "Удаление аннотации",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Annotation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Обновляет контент аннотации. Доступно только автору или модератору.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "annotation"
+                ],
+                "summary": "Редактирование аннотации",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Annotation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Данные для обновления",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_annotation.PatchUpdateAnnotationIn"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_annotation.PatchUpdateAnnotationOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "403": {
+                        "description": "Недостаточно прав",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/annotation/{id}/vote": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Поставить +1 или -1 за аннотацию. Доступно только аутентифицированным пользователям.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "annotation"
+                ],
+                "summary": "Голосование за аннотацию",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Annotation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Значение голоса (-1 или 1)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_annotation.PostVoteAnnotationIn"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_annotation.PostVoteAnnotationOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Аннотация не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Удаляет голос пользователя за аннотацию. Доступно только аутентифицированным пользователям.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "annotation"
+                ],
+                "summary": "Отмена голоса за аннотацию",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Annotation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Аннотация не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/artist": {
             "post": {
                 "security": [
@@ -596,6 +887,123 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/song/{id}/annotation": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Создает новую аннотацию для песни. Не допускается пересечение диапазонов с уже существующими аннотациями.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "annotation"
+                ],
+                "summary": "Создание аннотации",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Song ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Данные аннотации",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_annotation.PostAnnotationIn"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_annotation.PostAnnotationOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Невалидные данные, неверный индекс или пересечение выделений",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Песня не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/song/{id}/annotations": {
+            "get": {
+                "description": "Возвращает все аннотации для указанной песни без пагинации",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "annotation"
+                ],
+                "summary": "Получение списка аннотаций песни",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Song ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_annotation.GetAnnotationsOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Песня не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/song/{id}/cover": {
             "patch": {
                 "security": [
@@ -874,6 +1282,67 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/v1/user/{id}/annotations": {
+            "get": {
+                "description": "Возвращает список аннотаций, созданных пользователем",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "annotation"
+                ],
+                "summary": "Получение аннотаций пользователя",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Лимит",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Смещение",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_annotation.GetUserAnnotationsOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -881,6 +1350,262 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "message": {}
+            }
+        },
+        "internal_rest_api_annotation.Annotation": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "end_index": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "my_vote": {
+                    "description": "-1, 1 или null (опционально)",
+                    "type": "integer"
+                },
+                "rating": {
+                    "type": "integer"
+                },
+                "start_index": {
+                    "type": "integer"
+                },
+                "user": {
+                    "$ref": "#/definitions/internal_rest_api_annotation.UserInfo"
+                }
+            }
+        },
+        "internal_rest_api_annotation.ArtistInfo": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_annotation.GetAnnotationByIDOut": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "end_index": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "my_vote": {
+                    "type": "integer"
+                },
+                "rating": {
+                    "type": "integer"
+                },
+                "song": {
+                    "$ref": "#/definitions/internal_rest_api_annotation.SongInfo"
+                },
+                "start_index": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/internal_rest_api_annotation.UserInfo"
+                }
+            }
+        },
+        "internal_rest_api_annotation.GetAnnotationsOut": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_rest_api_annotation.Annotation"
+                    }
+                },
+                "song_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_rest_api_annotation.GetUserAnnotationsOut": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_rest_api_annotation.Annotation"
+                    }
+                },
+                "has_more": {
+                    "type": "boolean"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_rest_api_annotation.PatchUpdateAnnotationIn": {
+            "type": "object",
+            "required": [
+                "annotationID"
+            ],
+            "properties": {
+                "annotationID": {
+                    "type": "integer"
+                },
+                "content": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_annotation.PatchUpdateAnnotationOut": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "rating": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_annotation.PostAnnotationIn": {
+            "type": "object",
+            "required": [
+                "content",
+                "end_index",
+                "songID",
+                "start_index"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "end_index": {
+                    "type": "integer"
+                },
+                "songID": {
+                    "type": "integer"
+                },
+                "start_index": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_rest_api_annotation.PostAnnotationOut": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "end_index": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "rating": {
+                    "type": "integer"
+                },
+                "song_id": {
+                    "type": "integer"
+                },
+                "start_index": {
+                    "type": "integer"
+                },
+                "user": {
+                    "$ref": "#/definitions/internal_rest_api_annotation.UserInfo"
+                }
+            }
+        },
+        "internal_rest_api_annotation.PostVoteAnnotationIn": {
+            "type": "object",
+            "required": [
+                "annotationID",
+                "value"
+            ],
+            "properties": {
+                "annotationID": {
+                    "type": "integer"
+                },
+                "value": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_rest_api_annotation.PostVoteAnnotationOut": {
+            "type": "object",
+            "properties": {
+                "annotation_id": {
+                    "type": "integer"
+                },
+                "my_vote": {
+                    "type": "integer"
+                },
+                "new_rating": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_rest_api_annotation.SongInfo": {
+            "type": "object",
+            "properties": {
+                "artist": {
+                    "$ref": "#/definitions/internal_rest_api_annotation.ArtistInfo"
+                },
+                "cover_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_annotation.UserInfo": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "reputation_score": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
             }
         },
         "internal_rest_api_artist.GetArtistByIDOut": {
@@ -1080,19 +1805,19 @@ const docTemplate = `{
                 "artist": {
                     "$ref": "#/definitions/internal_rest_api_song.Artist"
                 },
-                "bio": {
-                    "type": "string"
-                },
                 "cover_url": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
-                "name": {
+                "lyrics": {
                     "type": "string"
                 },
                 "release_date": {
+                    "type": "string"
+                },
+                "title": {
                     "type": "string"
                 },
                 "views": {
