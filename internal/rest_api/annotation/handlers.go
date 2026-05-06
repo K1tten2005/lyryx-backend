@@ -70,7 +70,6 @@ func (h *Handlers) RegisterHandlers(
 	public.GET("/v1/song/:id/annotations", h.GetAnnotations)
 	public.GET("/v1/annotation/:id", h.GetAnnotationByID)
 	public.GET("/v1/user/:id/annotations", h.GetUserAnnotations)
-	public.GET("/v1/user/:id/annotations", h.GetUserAnnotations)
 
 	private := e.Group("")
 	private.Use(authMiddleware)

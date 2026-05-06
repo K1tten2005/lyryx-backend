@@ -1,4 +1,3 @@
-basePath: /
 definitions:
   echo.HTTPError:
     properties:
@@ -452,11 +451,8 @@ definitions:
       username:
         type: string
     type: object
-host: localhost:8080
 info:
   contact: {}
-  title: lyryx API
-  version: "1.0"
 paths:
   /v1/annotation/{id}:
     delete:
@@ -1325,4 +1321,9 @@ paths:
       summary: Обновление аватарки пользователя
       tags:
       - user
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

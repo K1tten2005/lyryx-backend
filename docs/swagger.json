@@ -1,12 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "title": "lyryx API",
-        "contact": {},
-        "version": "1.0"
+        "contact": {}
     },
-    "host": "localhost:8080",
-    "basePath": "/",
     "paths": {
         "/v1/annotation/{id}": {
             "get": {
@@ -2029,6 +2025,13 @@
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }

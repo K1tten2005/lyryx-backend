@@ -55,6 +55,9 @@ func init() {
 	}
 }
 
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 // @title     lyryx API
 // @version   1.0
 // @host      localhost:8080
