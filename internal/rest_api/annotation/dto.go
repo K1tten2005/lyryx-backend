@@ -59,8 +59,8 @@ type ArtistInfo struct {
 type PostAnnotationIn struct {
 	SongID     int    `param:"id" validate:"required"`
 	Content    string `json:"content" validate:"required"`
-	StartIndex *int    `json:"start_index" validate:"required"`
-	EndIndex   *int    `json:"end_index" validate:"required"`
+	StartIndex *int   `json:"start_index" validate:"required"`
+	EndIndex   *int   `json:"end_index" validate:"required"`
 }
 
 type PostAnnotationOut struct {
@@ -96,8 +96,8 @@ type PostVoteAnnotationIn struct {
 }
 
 type PostVoteAnnotationOut struct {
-	AnnotationID int `json:"annotation_id"`
-	NewRating    int `json:"new_rating"`
+	AnnotationID int  `json:"annotation_id"`
+	NewRating    int  `json:"new_rating"`
 	MyVote       *int `json:"my_vote"`
 }
 
@@ -116,4 +116,16 @@ type GetUserAnnotationsOut struct {
 	Annotations []Annotation `json:"annotations"`
 	Total       int          `json:"total"`
 	HasMore     bool         `json:"has_more"`
+}
+
+type GetAiAnnotationIn struct {
+	SongID     int    `param:"id" validate:"required"`
+	Question   string `query:"question" validate:"required"`
+	StartIndex *int   `query:"start_index" validate:"required"`
+	EndIndex   *int   `query:"end_index" validate:"required"`
+}
+
+type GetAiAnnotationOut struct {
+	SongID   int    `json:"song_id"`
+	Response string `json:"response"`
 }

@@ -33,6 +33,7 @@ import (
 	userUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/user"
 	userStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/user/storage"
 	userWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/user/wrappers"
+	ollamaClientPkg "github.com/K1tten2005/lyryx-backend/internal/clients/ollama"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jmoiron/sqlx"
@@ -102,6 +103,10 @@ func main() {
 		return
 	}
 
+	// Ollama client.
+
+	ollamaClient := ollamaClientPkg.NewOllamaClient(cfg.OllamaModelName, cfg.OllamaURL)
+
 	// Auth middleware.
 	strictAuthMiddleware := echojwt.WithConfig(echojwt.Config{
 		NewClaimsFunc: func(c echo.Context) jwt.Claims {
@@ -169,13 +174,15 @@ func main() {
 	}
 	songWrappers := songWrappersPkg.NewStorage(songStorage)
 	songCoverWrapper := songWrappersPkg.NewSongCoverStorage(songCoverStorage)
-	songUsecase := songUsecasePkg.NewUsecase(songWrappers, songCoverWrapper, logger)
+	songOllamaWrapper := songWrappersPkg.NewOllamaSongGetter(ollamaClient)
+	songUsecase := songUsecasePkg.NewUsecase(songWrappers, songCoverWrapper, songOllamaWrapper, logger)
 	songHandlers := songHandlersPkg.NewSongHandlers(songUsecase, claimsGetter, logger)
 	songHandlers.RegisterHandlers(echoHandler, strictAuthMiddleware, checkRoleMiddleware)
 
 	annotationStorage := annotationStoragePkg.NewStorage(db, logger)
 	annotationWrappers := annotationWrappersPkg.NewStorage(annotationStorage)
-	annotationUsecase := annotationUsecasePkg.NewUsecase(annotationWrappers, songUsecase, userUsecase, logger)
+	annotationOllamaWrapper := annotationWrappersPkg.NewOllamaAnnotationGetter(ollamaClient)
+	annotationUsecase := annotationUsecasePkg.NewUsecase(annotationWrappers, songUsecase, userUsecase, annotationOllamaWrapper, logger)
 	annotationHandlers := annotationHandlersPkg.NewHandlers(annotationUsecase, claimsGetter, logger)
 	annotationHandlers.RegisterHandlers(echoHandler, strictAuthMiddleware, optionalAuthMiddleware, checkRoleMiddleware)
 

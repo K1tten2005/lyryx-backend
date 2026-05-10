@@ -11,7 +11,14 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    
+  ollama:
+    image: ollama/ollama:latest
+    container_name: lyryx_ollama
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
   minio:
     image: minio/minio:latest
     container_name: lyryx_minio
@@ -29,3 +36,5 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  ollama_models:
+    external: true

@@ -43,24 +43,31 @@ type userGetter interface {
 	GetUserByID(ctx context.Context, userID int) (userDto.User, error)
 }
 
+type ollamaGetter interface {
+	GetAiAnnotation(ctx context.Context, prompt string) (string, error)
+}
+
 type Usecase struct {
-	storage    storage
-	songGetter songGetter
-	userGetter userGetter
-	logger     *logrus.Logger
+	storage      storage
+	songGetter   songGetter
+	userGetter   userGetter
+	ollamaGetter ollamaGetter
+	logger       *logrus.Logger
 }
 
 func NewUsecase(
 	storage storage,
 	songGetter songGetter,
 	userGetter userGetter,
+	ollamaGetter ollamaGetter,
 	logger *logrus.Logger,
 ) *Usecase {
 	return &Usecase{
-		storage:    storage,
-		songGetter: songGetter,
-		userGetter: userGetter,
-		logger:     logger,
+		storage:      storage,
+		songGetter:   songGetter,
+		userGetter:   userGetter,
+		ollamaGetter: ollamaGetter,
+		logger:       logger,
 	}
 }
 
@@ -228,4 +235,76 @@ func (u *Usecase) GetUserAnnotations(ctx context.Context, opts dto.GetUserAnnota
 	}
 
 	return annotations, total, nil
+}
+
+func (u *Usecase) GetAiAnnotation(ctx context.Context, opts dto.GetAiAnnotationOpts) (dto.AiAnnotationResp, error) {
+	song, err := u.songGetter.GetSongByID(ctx, opts.SongID)
+	if err != nil {
+		if errors.Is(err, wrappers.ErrSongNotFound) {
+			return dto.AiAnnotationResp{}, fmt.Errorf("get song by id: %w", ErrSongNotFound)
+		}
+		return dto.AiAnnotationResp{}, fmt.Errorf("get song by id: %v", err)
+	}
+
+	// Формируем промпт.
+	selectedLyrics := song.Lyrics[*opts.StartIndex:*opts.EndIndex]
+	prompt := u.buildAiPrompt(song, selectedLyrics, opts.Question)
+
+	resp, err := u.ollamaGetter.GetAiAnnotation(ctx, prompt)
+	if err != nil {
+		return dto.AiAnnotationResp{}, fmt.Errorf("get ai annotation: %v", err)
+	}
+
+	return dto.AiAnnotationResp{
+		Response: resp,
+	}, nil
+}
+
+// buildAiPrompt формирует структурированный промпт для LLM
+func (u *Usecase) buildAiPrompt(song songDto.SongInfo, selectedLyrics, userQuestion string) string {
+	// Ограничиваем длину текста, чтобы не превысить контекстное окно модели
+	lyrics := song.Lyrics
+	const maxLyricsLen = 2000 // в рунах, не байтах!
+	if utf8.RuneCountInString(lyrics) > maxLyricsLen {
+		lyrics = truncateLyrics(lyrics, maxLyricsLen)
+	}
+
+	return fmt.Sprintf(`Ты — эксперт по анализу текстов песен. Дай развёрнутый, но лаконичный ответ на вопрос пользователя.
+
+**Информация о песне:**
+- Название: %s
+- Артист: %s
+- Текст: 
+"""
+%s
+"""
+- Выделенный текст, к которому относится вопрос:
+"""
+%s
+"""
+**Вопрос пользователя:**
+"%s"
+
+**Требования к ответу:**
+- Отвечай на русском языке
+- Будь точен, опирайся на текст песни
+- Если вопрос не относится к тексту — так и скажи
+- Не выдумывай факты
+- Максимальная длина ответа: 100 слов`,
+		song.Title,
+		song.Artist.Name,
+		lyrics,
+		selectedLyrics,
+		userQuestion,
+	)
+}
+
+// truncateLyrics обрезает текст, сохраняя начало и конец
+func truncateLyrics(lyrics string, maxRunes int) string {
+	runes := []rune(lyrics)
+	if len(runes) <= maxRunes {
+		return lyrics
+	}
+	half := maxRunes / 2
+	return string(runes[:half]) + "\n\n[...текст сокращён...]\n\n" + string(runes[len(runes)-half:])
 }

@@ -929,6 +929,150 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/song/{id}/ai-annotation": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Генерирует аннотацию с помощью ИИ для указанного фрагмента песни",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "annotation"
+                ],
+                "summary": "Получение AI-аннотации",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Song ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Вопрос для AI",
+                        "name": "question",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Начальный индекс фрагмента",
+                        "name": "start_index",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Конечный индекс фрагмента",
+                        "name": "end_index",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_annotation.GetAiAnnotationOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Песня не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/song/{id}/ai-translation": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Генерирует перевод или объяснение текста песни с помощью искусственного интеллекта на указанный язык. Требуется аутентификация.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "song"
+                ],
+                "summary": "Получение AI-перевода текста песни",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Song ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "maxLength": 5,
+                        "minLength": 2,
+                        "type": "string",
+                        "description": "Код целевого языка (например: 'en', 'de', 'fr')",
+                        "name": "language",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешный ответ с AI-переводом",
+                        "schema": {
+                            "$ref": "#/definitions/internal_rest_api_song.GetAiTranslationOut"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные параметры запроса",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не аутентифицирован",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Песня не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/song/{id}/annotation": {
             "post": {
                 "security": [
@@ -1435,6 +1579,17 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_rest_api_annotation.GetAiAnnotationOut": {
+            "type": "object",
+            "properties": {
+                "response": {
+                    "type": "string"
+                },
+                "song_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "internal_rest_api_annotation.GetAnnotationByIDOut": {
             "type": "object",
             "properties": {
@@ -1920,6 +2075,17 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_song.GetAiTranslationOut": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "response": {
                     "type": "string"
                 }
             }

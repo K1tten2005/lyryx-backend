@@ -81,3 +81,14 @@ type GetUserAnnotationsOpts struct {
 	Limit         int
 	Offset        int
 }
+
+type GetAiAnnotationOpts struct {
+	SongID     int
+	Question   string
+	StartIndex *int
+	EndIndex   *int
+}
+
+type AiAnnotationResp struct {
+	Response string
+}

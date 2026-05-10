@@ -30,6 +30,13 @@ definitions:
       name:
         type: string
     type: object
+  internal_rest_api_annotation.GetAiAnnotationOut:
+    properties:
+      response:
+        type: string
+      song_id:
+        type: integer
+    type: object
   internal_rest_api_annotation.GetAnnotationByIDOut:
     properties:
       content:
@@ -347,6 +354,13 @@ definitions:
       id:
         type: integer
       name:
+        type: string
+    type: object
+  internal_rest_api_song.GetAiTranslationOut:
+    properties:
+      id:
+        type: integer
+      response:
         type: string
     type: object
   internal_rest_api_song.GetSongByIDOut:
@@ -1101,6 +1115,101 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Частичное обновление информации о песне
+      tags:
+      - song
+  /v1/song/{id}/ai-annotation:
+    get:
+      description: Генерирует аннотацию с помощью ИИ для указанного фрагмента песни
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Вопрос для AI
+        in: query
+        name: question
+        required: true
+        type: string
+      - description: Начальный индекс фрагмента
+        in: query
+        name: start_index
+        type: integer
+      - description: Конечный индекс фрагмента
+        in: query
+        name: end_index
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_rest_api_annotation.GetAiAnnotationOut'
+        "400":
+          description: Некорректный запрос
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "404":
+          description: Песня не найдена
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      security:
+      - ApiKeyAuth: []
+      summary: Получение AI-аннотации
+      tags:
+      - annotation
+  /v1/song/{id}/ai-translation:
+    get:
+      description: Генерирует перевод или объяснение текста песни с помощью искусственного
+        интеллекта на указанный язык. Требуется аутентификация.
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 'Код целевого языка (например: ''en'', ''de'', ''fr'')'
+        in: query
+        maxLength: 5
+        minLength: 2
+        name: language
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ с AI-переводом
+          schema:
+            $ref: '#/definitions/internal_rest_api_song.GetAiTranslationOut'
+        "400":
+          description: Некорректные параметры запроса
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "404":
+          description: Песня не найдена
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      security:
+      - ApiKeyAuth: []
+      summary: Получение AI-перевода текста песни
       tags:
       - song
   /v1/song/{id}/annotation:

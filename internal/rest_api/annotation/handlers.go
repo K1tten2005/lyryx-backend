@@ -35,6 +35,7 @@ type annotationUsecase interface {
 	VoteAnnotation(ctx context.Context, opts dto.PostVoteAnnotationOpts) (int, error)
 	DeleteVote(ctx context.Context, opts dto.DeleteVoteOpts) error
 	GetUserAnnotations(ctx context.Context, opts dto.GetUserAnnotationsOpts) ([]dto.AnnotationInfo, int, error)
+	GetAiAnnotation(ctx context.Context, opts dto.GetAiAnnotationOpts) (dto.AiAnnotationResp, error)
 }
 
 type claimsGetter interface {
@@ -73,6 +74,7 @@ func (h *Handlers) RegisterHandlers(
 
 	private := e.Group("")
 	private.Use(authMiddleware)
+	private.GET("/v1/song/:id/ai-annotation", h.GetAiAnnotation)
 	private.POST("/v1/song/:id/annotation", h.PostAnnotation)
 	private.PATCH("/v1/annotation/:id", h.PatchUpdateAnnotation)
 	private.DELETE("/v1/annotation/:id", h.DeleteAnnotation)
@@ -644,6 +646,63 @@ func getUserAnnotationsInToOpts(req *GetUserAnnotationsIn, currentUserID *int) d
 		CurrentUserID: currentUserID,
 		Limit:         limit,
 		Offset:        offset,
+	}
+}
+
+// GetAiAnnotation godoc
+// @Summary      Получение AI-аннотации
+// @Description  Генерирует аннотацию с помощью ИИ для указанного фрагмента песни
+// @Tags         annotation
+// @Produce      json
+// @Security     ApiKeyAuth
+// @Param        id           path   int     true   "Song ID"
+// @Param        question     query  string  true   "Вопрос для AI"
+// @Param        start_index  query  int     false  "Начальный индекс фрагмента"
+// @Param        end_index    query  int     false  "Конечный индекс фрагмента"
+// @Success      200          {object} GetAiAnnotationOut
+// @Failure      400          {object} echo.HTTPError "Некорректный запрос"
+// @Failure      401          {object} echo.HTTPError "Не авторизован"
+// @Failure      404          {object} echo.HTTPError "Песня не найдена"
+// @Failure      500          {object} echo.HTTPError "Внутренняя ошибка сервера"
+// @Router       /v1/song/{id}/ai-annotation [get]
+func (h *Handlers) GetAiAnnotation(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	req := new(GetAiAnnotationIn)
+	if err := c.Bind(req); err != nil {
+		h.logger.WithError(err).Warning("bind failed")
+		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": "invalid input"})
+	}
+	if err := c.Validate(req); err != nil {
+		h.logger.WithError(err).Warning("validate failed")
+		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": err.Error()})
+	}
+
+	opts := getAiAnnotationToOpts(req)
+
+	resp, err := h.annotationUsecase.GetAiAnnotation(ctx, opts)
+	if err != nil {
+		h.logger.WithError(err).Warning("get ai annotation failed")
+		if errors.Is(err, usecase.ErrSongNotFound) {
+			return echo.NewHTTPError(http.StatusNotFound, echo.Map{"error": ErrSongNotFound.Error()})
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": "internal error"})
+	}
+
+	out := GetAiAnnotationOut{
+		SongID:   req.SongID,
+		Response: resp.Response,
+	}
+
+	return c.JSON(http.StatusOK, out)
+}
+
+func getAiAnnotationToOpts(req *GetAiAnnotationIn) dto.GetAiAnnotationOpts {
+	return dto.GetAiAnnotationOpts{
+		SongID:     req.SongID,
+		Question:   req.Question,
+		StartIndex: req.StartIndex,
+		EndIndex:   req.EndIndex,
 	}
 }
 

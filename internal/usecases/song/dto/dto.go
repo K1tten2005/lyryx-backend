@@ -47,3 +47,12 @@ type PatchUpdateCoverOpts struct {
 	SongID   int
 	CoverURL string
 }
+
+type GetAiTranslationOpts struct {
+	SongID    int
+	Language  string
+}
+
+type AiTranslationResp struct {
+	Response string
+}

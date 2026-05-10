@@ -20,11 +20,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	ErrSongNotFound = errors.New("song not found")
+)
+
 type songUsecase interface {
 	GetSongByID(ctx context.Context, songID int) (dto.SongInfo, error)
 	PostSong(ctx context.Context, opts dto.PostSongOpts) (dto.SongInfo, error)
 	PatchUpdateSong(ctx context.Context, opts dto.PatchUpdateSongOpts) (dto.SongInfo, error)
 	PatchUpdateCover(ctx context.Context, opts dto.UploadCoverOpts) (string, error)
+	GetAiTranslation(ctx context.Context, opts dto.GetAiTranslationOpts) (dto.AiTranslationResp, error)
 }
 
 type claimsGetter interface {
@@ -59,6 +64,7 @@ func (h *Handlers) RegisterHandlers(e *echo.Echo, authMiddleware echo.Middleware
 	private.POST("/v1/song", h.PostSong, checkRoleMiddleware.CheckRole(roles.RoleModerator))
 	private.PATCH("/v1/song/:id", h.PatchUpdateSong, checkRoleMiddleware.CheckRole(roles.RoleModerator))
 	private.PATCH("/v1/song/:id/cover", h.PatchUpdateCover, checkRoleMiddleware.CheckRole(roles.RoleModerator))
+	private.GET("/v1/song/:id/ai-translation", h.GetAiTranslation)
 }
 
 // GetSongByID godoc
@@ -338,4 +344,57 @@ func (h *Handlers) PatchUpdateCover(c echo.Context) error {
 	return c.JSON(http.StatusOK, PatchUpdateCoverOut{
 		CoverURL: avatarUrl,
 	})
+}
+
+// GetAiTranslation godoc
+// @Summary      Получение AI-перевода текста песни
+// @Description  Генерирует перевод или объяснение текста песни с помощью искусственного интеллекта на указанный язык. Требуется аутентификация.
+// @Tags         song
+// @Produce      json
+// @Param        id         path   int     true  "Song ID"
+// @Param        language   query  string  true  "Код целевого языка (например: 'en', 'de', 'fr')"  minlength(2)  maxlength(5)
+// @Success      200        {object} GetAiTranslationOut  "Успешный ответ с AI-переводом"
+// @Failure      400        {object} echo.HTTPError      "Некорректные параметры запроса"
+// @Failure      401        {object} echo.HTTPError      "Пользователь не аутентифицирован"
+// @Failure      404        {object} echo.HTTPError      "Песня не найдена"
+// @Failure      500        {object} echo.HTTPError      "Внутренняя ошибка сервера"
+// @Security     ApiKeyAuth
+// @Router       /v1/song/{id}/ai-translation [get]
+func (h *Handlers) GetAiTranslation(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	req := new(GetAiTranslationIn)
+	if err := c.Bind(req); err != nil {
+		h.logger.WithError(err).Warning("bind failed")
+		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": "invalid input"})
+	}
+	if err := c.Validate(req); err != nil {
+		h.logger.WithError(err).Warning("validate failed")
+		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": err.Error()})
+	}
+
+	opts := getAiTranslationToOpts(req)
+
+	resp, err := h.songUsecase.GetAiTranslation(ctx, opts)
+	if err != nil {
+		h.logger.WithError(err).Warning("get ai annotation failed")
+		if errors.Is(err, usecase.ErrSongNotFound) {
+			return echo.NewHTTPError(http.StatusNotFound, echo.Map{"error": ErrSongNotFound.Error()})
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": "internal error"})
+	}
+
+	out := GetAiTranslationOut{
+		SongID:   req.SongID,
+		Response: resp.Response,
+	}
+
+	return c.JSON(http.StatusOK, out)
+}
+
+func getAiTranslationToOpts(req *GetAiTranslationIn) dto.GetAiTranslationOpts {
+	return dto.GetAiTranslationOpts{
+		SongID:   req.SongID,
+		Language: req.Language,
+	}
 }

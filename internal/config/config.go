@@ -9,4 +9,7 @@ type Config struct {
 	MinIOSecretKey     string `env:"MINIO_SECRET_KEY,required"`
 	MinIOUseSSL        bool   `env:"MINIO_USE_SSL,required"`
 	MinIOPublicBaseURL string `env:"MINIO_PUBLIC_BASE_URL,required"`
+
+	OllamaModelName string `env:"OLLAMA_MODEL_NAME,required"`
+	OllamaURL string `env:"OLLAMA_URL,required"`
 }

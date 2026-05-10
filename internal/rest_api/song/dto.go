@@ -62,3 +62,13 @@ type PatchUpdateSongOut struct {
 type PatchUpdateCoverOut struct {
 	CoverURL string `json:"cover_url"`
 }
+
+type GetAiTranslationIn struct {
+	SongID   int    `param:"id" validate:"required"`
+	Language string `query:"language" validate:"required"`
+}
+
+type GetAiTranslationOut struct {
+	SongID   int    `json:"id"`
+	Response string `json:"response"`
+}
