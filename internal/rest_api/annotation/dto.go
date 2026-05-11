@@ -111,11 +111,23 @@ type GetUserAnnotationsIn struct {
 	Offset int `query:"offset" validate:"omitempty,min=0"`
 }
 
+type UserAnnotation struct {
+	ID         int      `json:"id"`
+	Song       SongInfo `json:"song"`
+	Content    string   `json:"content"`
+	StartIndex int      `json:"start_index"`
+	EndIndex   int      `json:"end_index"`
+	Rating     int      `json:"rating"`
+	CreatedAt  string   `json:"created_at"`
+	UpdatedAt  string   `json:"updated_at"`
+	MyVote     *int     `json:"my_vote"`
+}
+
 type GetUserAnnotationsOut struct {
-	UserID      int          `json:"user_id"`
-	Annotations []Annotation `json:"annotations"`
-	Total       int          `json:"total"`
-	HasMore     bool         `json:"has_more"`
+	UserID      int              `json:"user_id"`
+	Annotations []UserAnnotation `json:"annotations"`
+	Total       int              `json:"total"`
+	HasMore     bool             `json:"has_more"`
 }
 
 type GetAiAnnotationIn struct {

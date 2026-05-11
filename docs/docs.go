@@ -1645,7 +1645,7 @@ const docTemplate = `{
                 "annotations": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/internal_rest_api_annotation.Annotation"
+                        "$ref": "#/definitions/internal_rest_api_annotation.UserAnnotation"
                     }
                 },
                 "has_more": {
@@ -1784,6 +1784,38 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_annotation.UserAnnotation": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "end_index": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "my_vote": {
+                    "type": "integer"
+                },
+                "rating": {
+                    "type": "integer"
+                },
+                "song": {
+                    "$ref": "#/definitions/internal_rest_api_annotation.SongInfo"
+                },
+                "start_index": {
+                    "type": "integer"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }

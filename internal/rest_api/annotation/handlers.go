@@ -625,12 +625,7 @@ func (h *Handlers) GetUserAnnotations(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, echo.Map{"error": "internal error"})
 	}
 
-	out := GetUserAnnotationsOut{
-		UserID:      req.UserID,
-		Annotations: annotationsToOut(annotations),
-		Total:       total,
-		HasMore:     req.Offset+len(annotations) < total,
-	}
+	out := getUserAnnotationsToOut(annotations, total, req.Offset, req.UserID)
 	return c.JSON(http.StatusOK, out)
 }
 
@@ -647,6 +642,31 @@ func getUserAnnotationsInToOpts(req *GetUserAnnotationsIn, currentUserID *int) d
 		Limit:         limit,
 		Offset:        offset,
 	}
+}
+
+func getUserAnnotationsToOut(anns []dto.AnnotationInfo, total, offset, userID int) GetUserAnnotationsOut {
+	result := make([]UserAnnotation, 0, len(anns))
+	for _, a := range anns {
+		result = append(result, UserAnnotation{
+			ID:         a.ID,
+			Song:       songInfoToOut(a.Song),
+			Content:    a.Content,
+			StartIndex: a.StartIndex,
+			EndIndex:   a.EndIndex,
+			Rating:     a.Rating,
+			CreatedAt:  a.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			UpdatedAt:  a.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			MyVote:     a.MyVote,
+		})
+	}
+
+	out := GetUserAnnotationsOut{
+		UserID:      userID,
+		Annotations: result,
+		Total:       total,
+		HasMore:     offset+len(anns) < total,
+	}
+	return out
 }
 
 // GetAiAnnotation godoc

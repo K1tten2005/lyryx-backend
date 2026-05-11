@@ -339,12 +339,6 @@ func (s *Storage) DeleteVote(ctx context.Context, filter RemoveVoteFilter) error
 
 // GetUserAnnotations получает аннотации пользователя
 func (s *Storage) GetUserAnnotations(ctx context.Context, filter GetUserAnnotationsFilter) ([]AnnotationInfo, int, error) {
-	limit := filter.Limit
-	if limit <= 0 {
-		limit = 20
-	}
-	offset := max(0, filter.Offset)
-
 	query := `
         SELECT
             ann.id, 
@@ -376,7 +370,7 @@ func (s *Storage) GetUserAnnotations(ctx context.Context, filter GetUserAnnotati
         LIMIT $3 OFFSET $4
     `
 
-	rows, err := s.db.QueryContext(ctx, query, filter.CurrentUserID, filter.UserID, limit, offset)
+	rows, err := s.db.QueryContext(ctx, query, filter.CurrentUserID, filter.UserID, filter.Limit, filter.Offset)
 	if err != nil {
 		return nil, 0, err
 	}

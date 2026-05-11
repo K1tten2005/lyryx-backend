@@ -73,7 +73,7 @@ definitions:
     properties:
       annotations:
         items:
-          $ref: '#/definitions/internal_rest_api_annotation.Annotation'
+          $ref: '#/definitions/internal_rest_api_annotation.UserAnnotation'
         type: array
       has_more:
         type: boolean
@@ -165,6 +165,27 @@ definitions:
       id:
         type: integer
       title:
+        type: string
+    type: object
+  internal_rest_api_annotation.UserAnnotation:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      end_index:
+        type: integer
+      id:
+        type: integer
+      my_vote:
+        type: integer
+      rating:
+        type: integer
+      song:
+        $ref: '#/definitions/internal_rest_api_annotation.SongInfo'
+      start_index:
+        type: integer
+      updated_at:
         type: string
     type: object
   internal_rest_api_annotation.UserInfo:
