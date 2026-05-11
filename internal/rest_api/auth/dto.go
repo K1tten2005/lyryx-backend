@@ -4,6 +4,7 @@ type UserInfo struct {
 	UserID          int    `json:"user_id"`
 	Email           string `json:"email"`
 	Username        string `json:"username"`
+	AvatarURL       string `json:"avatar_url"`
 	ReputationScore int    `json:"reputation_score"`
 	Role            string `json:"role"`
 }

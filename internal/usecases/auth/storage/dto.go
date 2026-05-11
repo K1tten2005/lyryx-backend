@@ -10,6 +10,7 @@ type UserInfo struct {
 	UserID          int
 	Email           string
 	Username        string
+	AvatarURL       string
 	Role            string
 	ReputationScore int
 }

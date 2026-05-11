@@ -74,6 +74,7 @@ func (s *Storage) GetUserInfoByEmail(ctx context.Context, email string) (dto.Use
 		UserID:          userInfo.UserID,
 		Email:           userInfo.Email,
 		Username:        userInfo.Username,
+		AvatarURL:       userInfo.AvatarURL,
 		ReputationScore: userInfo.ReputationScore,
 		Role:            userInfo.Role,
 	}, nil

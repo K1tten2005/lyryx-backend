@@ -73,6 +73,7 @@ func (s *Storage) GetUserInfoByEmail(_ context.Context, email string) (UserInfo,
 				id,
 				username,
 				reputation_score,
+				avatar_url,
 				role
 			FROM users
 			WHERE email = $1;
@@ -82,13 +83,17 @@ func (s *Storage) GetUserInfoByEmail(_ context.Context, email string) (UserInfo,
 	}
 
 	row := s.db.QueryRow(query, email)
+	var avatarURL sql.NullString
 
-	err := row.Scan(&userInfo.UserID, &userInfo.Username, &userInfo.ReputationScore, &userInfo.Role)
+	err := row.Scan(&userInfo.UserID, &userInfo.Username, &userInfo.ReputationScore, &avatarURL, &userInfo.Role)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return UserInfo{}, fmt.Errorf("failed to find user: %w", ErrUserDoesntExist)
 		}
 		return UserInfo{}, fmt.Errorf("failed to get user info: %v", err)
+	}
+	if avatarURL.Valid {
+		userInfo.AvatarURL = avatarURL.String
 	}
 
 	return userInfo, nil

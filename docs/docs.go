@@ -1962,6 +1962,9 @@ const docTemplate = `{
         "internal_rest_api_auth.UserInfo": {
             "type": "object",
             "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },

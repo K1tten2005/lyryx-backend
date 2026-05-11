@@ -313,6 +313,7 @@ func signInOptsToOut(opts dto.UserInfo, accessToken string) PostSignInOut {
 			UserID:          opts.UserID,
 			Email:           opts.Email,
 			Username:        opts.Username,
+			AvatarURL:       opts.AvatarURL,
 			ReputationScore: opts.ReputationScore,
 			Role:            opts.Role,
 		},

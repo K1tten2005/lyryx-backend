@@ -14,9 +14,9 @@ CREATE TABLE users (
     updated_at       TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
 );
 
--- При миграции добавляем модератора с паролем moder
+-- При миграции добавляем модератора с паролем Moder123!
 INSERT INTO users (username, email, password_hash, role)
-VALUES ('moder', 'moder@mail.ru', '$2a$12$sxI.ki6dKpRYBOBAlo5KZ.WFW7gdU3F/3tHdNmiywm25FAC8u8ecy', 'moderator');
+VALUES ('moder', 'moder@mail.ru', '$2a$12$UUGSOUR6bNokVGE81rJlJ.eSYZtxZTy0LT3WTYNwrRPUnyzO6fo8a', 'moderator');
 
 -- +goose StatementBegin
 CREATE OR REPLACE FUNCTION update_updated_at_column()
