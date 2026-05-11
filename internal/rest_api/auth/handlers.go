@@ -178,7 +178,8 @@ func (h *Handlers) PostSignUp(c echo.Context) error {
 		Value:    signedRefreshToken,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true, // Установите в true для HTTPS.
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(refreshTokenExp.Seconds()),
 	})
 
@@ -282,7 +283,8 @@ func (h *Handlers) PostSignIn(c echo.Context) error {
 		Value:    signedRefreshToken,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true, // Установите в true для HTTPS.
+		Secure:   false, // Установите в true для HTTPS.
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(refreshTokenExp.Seconds()),
 	})
 
@@ -358,7 +360,8 @@ func (h *Handlers) PostSignOut(c echo.Context) error {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 		Expires:  time.Unix(0, 0),
 	})
@@ -421,7 +424,8 @@ func (h *Handlers) PostRefreshToken(c echo.Context) error {
 		Value:    signedRefreshToken,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true, // Установите в true для HTTPS.
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(refreshTokenExp.Seconds()),
 	})
 

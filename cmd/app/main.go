@@ -8,12 +8,13 @@ import (
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/middlewares"
 
+	ollamaClientPkg "github.com/K1tten2005/lyryx-backend/internal/clients/ollama"
 	annotationHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/annotation"
 	artistHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/artist"
 	authHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/auth"
+	searchHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/search"
 	songHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/song"
 	userHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/user"
-	searchHandlersPkg "github.com/K1tten2005/lyryx-backend/internal/rest_api/search"
 	"github.com/K1tten2005/lyryx-backend/internal/rest_api/utils"
 	annotationUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/annotation"
 	annotationStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/annotation/storage"
@@ -21,19 +22,18 @@ import (
 	artistUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/artist"
 	artistStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/artist/storage"
 	artistWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/artist/wrappers"
-	searchUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/search"
-	searchStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/search/storage"
-	searchWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/search/wrappers"
 	authUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth"
 	authStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/storage"
 	authWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/auth/wrappers"
+	searchUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/search"
+	searchStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/search/storage"
+	searchWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/search/wrappers"
 	songUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/song"
 	songStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/song/storage"
 	songWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/song/wrappers"
 	userUsecasePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/user"
 	userStoragePkg "github.com/K1tten2005/lyryx-backend/internal/usecases/user/storage"
 	userWrappersPkg "github.com/K1tten2005/lyryx-backend/internal/usecases/user/wrappers"
-	ollamaClientPkg "github.com/K1tten2005/lyryx-backend/internal/clients/ollama"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jmoiron/sqlx"
@@ -116,16 +116,16 @@ func main() {
 	})
 
 	optionalAuthMiddleware := echojwt.WithConfig(echojwt.Config{
-    NewClaimsFunc: func(c echo.Context) jwt.Claims {
-        return new(authHandlersPkg.JwtCustomClaims)
-    },
-    SigningKey: []byte(cfg.JWTSecret),
+		NewClaimsFunc: func(c echo.Context) jwt.Claims {
+			return new(authHandlersPkg.JwtCustomClaims)
+		},
+		SigningKey: []byte(cfg.JWTSecret),
 
-    ContinueOnIgnoredError: true,
-    ErrorHandler: func(c echo.Context, err error) error {
-        return nil
-    },
-})
+		ContinueOnIgnoredError: true,
+		ErrorHandler: func(c echo.Context, err error) error {
+			return nil
+		},
+	})
 	checkRoleMiddleware := middlewares.NewRoleCheckerMiddleware(logger)
 
 	echoHandler := echo.New()
@@ -193,8 +193,18 @@ func main() {
 	searchHandlers.RegisterHandlers(echoHandler, strictAuthMiddleware, checkRoleMiddleware)
 
 	echoHandler.Use(echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
-		AllowOrigins: []string{"*"}, // На этапе разработки можно всё
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+		// Указываем конкретный адрес фронтенда
+		AllowOrigins: []string{"http://localhost:3000"},
+		AllowHeaders: []string{
+			echo.HeaderOrigin,
+			echo.HeaderContentType,
+			echo.HeaderAccept,
+			echo.HeaderAuthorization,
+		},
+		// Разрешаем передачу кук и учетных данных
+		AllowCredentials: true,
+		// Метод OPTIONS важен для префлайт-запросов
+		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE, echo.PATCH, echo.OPTIONS},
 	}))
 
 	server := rest_api.NewServer(echoHandler)
