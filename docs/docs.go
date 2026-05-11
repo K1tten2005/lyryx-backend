@@ -1809,6 +1809,9 @@ const docTemplate = `{
                 "rating": {
                     "type": "integer"
                 },
+                "snippet": {
+                    "type": "string"
+                },
                 "song": {
                     "$ref": "#/definitions/internal_rest_api_annotation.SongInfo"
                 },
@@ -1851,6 +1854,12 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "songs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_rest_api_artist.Song"
+                    }
                 }
             }
         },
@@ -1924,6 +1933,26 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_rest_api_artist.Song": {
+            "type": "object",
+            "properties": {
+                "cover_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "release_date": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "views": {
+                    "type": "integer"
                 }
             }
         },

@@ -17,7 +17,7 @@ import (
 )
 
 type artistUsecase interface {
-	GetArtistByID(ctx context.Context, artistID int) (dto.Artist, error)
+	GetArtistByID(ctx context.Context, opts dto.GetArtistByIDOpts) (dto.GetArtistByIDResp, error)
 	PostArtist(ctx context.Context, opts dto.PostArtistOpts) (dto.Artist, error)
 	PatchUpdateArtist(ctx context.Context, opts dto.PatchUpdateArtistOpts) (dto.Artist, error)
 	PatchUpdateAvatar(ctx context.Context, opts dto.UploadAvatarOpts) (string, error)
@@ -81,7 +81,9 @@ func (h *Handlers) GetArtistByID(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
 	}
 
-	user, err := h.artistUsecase.GetArtistByID(ctx, req.ArtistID)
+	opts := getArtistByIDToOpts(req)
+
+	user, err := h.artistUsecase.GetArtistByID(ctx, opts)
 	if err != nil {
 		h.logger.WithError(err).Warning(err.Error())
 		if errors.Is(err, usecase.ErrArtistNotFound) {
@@ -95,12 +97,36 @@ func (h *Handlers) GetArtistByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, out)
 }
 
-func getArtistByIDToOut(artist dto.Artist) GetArtistByIDOut {
+func getArtistByIDToOpts(req *GetArtistByIDIn) dto.GetArtistByIDOpts {
+	limit := req.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+	offset := max(0, req.Offset)
+
+	return dto.GetArtistByIDOpts{
+		ArtistID: req.ArtistID,
+		Limit:    limit,
+		Offset:   offset,
+	}
+}
+func getArtistByIDToOut(artist dto.GetArtistByIDResp) GetArtistByIDOut {
+	songsResp := make([]Song, 0, len(artist.Songs))
+	for _, s := range artist.Songs {
+		songsResp = append(songsResp, Song{
+			ID:          s.ID,
+			Title:       s.Title,
+			CoverURL:    s.CoverURL,
+			Views:       s.Views,
+			ReleaseDate: s.ReleaseDate,
+		})
+	}
 	return GetArtistByIDOut{
 		ArtistID:  artist.ArtistID,
 		Name:      artist.Name,
 		Bio:       artist.Bio,
 		AvatarURL: artist.AvatarURL,
+		Songs:     songsResp,
 	}
 }
 

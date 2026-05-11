@@ -18,7 +18,7 @@ var (
 )
 
 type storage interface {
-	GetArtistByID(ctx context.Context, artistID int) (dto.Artist, error)
+	GetArtistByID(ctx context.Context, opts dto.GetArtistByIDOpts) (dto.GetArtistByIDResp, error)
 	PostArtist(ctx context.Context, opts dto.PostArtistOpts) (dto.Artist, error)
 	PatchUpdateArtist(ctx context.Context, opts dto.PatchUpdateArtistOpts) (dto.Artist, error)
 	PatchUpdateAvatar(ctx context.Context, opts dto.PatchUpdateAvatarOpts) error
@@ -48,13 +48,13 @@ func NewUsecase(
 	}
 }
 
-func (u *Usecase) GetArtistByID(ctx context.Context, artistID int) (dto.Artist, error) {
-	user, err := u.storage.GetArtistByID(ctx, artistID)
+func (u *Usecase) GetArtistByID(ctx context.Context, opts dto.GetArtistByIDOpts) (dto.GetArtistByIDResp, error) {
+	user, err := u.storage.GetArtistByID(ctx, opts)
 	if err != nil {
 		if errors.Is(err, wrappers.ErrArtistNotFound) {
-			return dto.Artist{}, ErrArtistNotFound
+			return dto.GetArtistByIDResp{}, ErrArtistNotFound
 		}
-		return dto.Artist{}, fmt.Errorf("get artist by id: %v", err)
+		return dto.GetArtistByIDResp{}, fmt.Errorf("get artist by id: %v", err)
 	}
 
 	return user, nil
@@ -89,7 +89,11 @@ func (u *Usecase) PatchUpdateArtist(ctx context.Context, opts dto.PatchUpdateArt
 
 func (u *Usecase) PatchUpdateAvatar(ctx context.Context, opts dto.UploadAvatarOpts) (string, error) {
 	// 1. Проверяем, что пользователь существует.
-	_, err := u.storage.GetArtistByID(ctx, opts.ArtistID)
+	_, err := u.storage.GetArtistByID(ctx, dto.GetArtistByIDOpts{
+		ArtistID: opts.ArtistID,
+		Limit:    1,
+		Offset:   0,
+	})
 	if err != nil {
 		if errors.Is(err, wrappers.ErrArtistNotFound) {
 			return "", fmt.Errorf("patch update avatar: %w", ErrArtistNotFound)

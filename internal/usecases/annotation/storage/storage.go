@@ -355,6 +355,7 @@ func (s *Storage) GetUserAnnotations(ctx context.Context, filter GetUserAnnotati
             s.id as song_id,
             s.title,
             s.cover_url,
+			s.lyrics,
             art.id as artist_id,
             art.name as artist_name,
             v.vote_value as my_vote
@@ -382,17 +383,21 @@ func (s *Storage) GetUserAnnotations(ctx context.Context, filter GetUserAnnotati
 			a      AnnotationInfo
 			myVote sql.NullInt64
 			avatar sql.NullString
+			lyrics string
 		)
 
 		err := rows.Scan(
 			&a.ID, &a.Content, &a.StartIndex, &a.EndIndex, &a.Rating, &a.CreatedAt, &a.UpdatedAt,
 			&a.User.UserID, &a.User.Username, &avatar, &a.User.ReputationScore,
-			&a.Song.ID, &a.Song.Title, &a.Song.CoverURL,
+			&a.Song.ID, &a.Song.Title, &a.Song.CoverURL, &lyrics,
 			&a.Song.Artist.ID, &a.Song.Artist.Name, &myVote,
 		)
 		if err != nil {
 			return nil, 0, err
 		}
+
+		runes := []rune(lyrics)
+		a.Snippet = string(runes[a.StartIndex:a.EndIndex])
 
 		if avatar.Valid {
 			a.User.AvatarURL = avatar.String

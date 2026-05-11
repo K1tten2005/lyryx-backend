@@ -181,6 +181,8 @@ definitions:
         type: integer
       rating:
         type: integer
+      snippet:
+        type: string
       song:
         $ref: '#/definitions/internal_rest_api_annotation.SongInfo'
       start_index:
@@ -209,6 +211,10 @@ definitions:
         type: integer
       name:
         type: string
+      songs:
+        items:
+          $ref: '#/definitions/internal_rest_api_artist.Song'
+        type: array
     type: object
   internal_rest_api_artist.PatchUpdateArtistIn:
     properties:
@@ -256,6 +262,19 @@ definitions:
         type: integer
       name:
         type: string
+    type: object
+  internal_rest_api_artist.Song:
+    properties:
+      cover_url:
+        type: string
+      id:
+        type: integer
+      release_date:
+        type: string
+      title:
+        type: string
+      views:
+        type: integer
     type: object
   internal_rest_api_auth.PostRefreshTokenOut:
     properties:

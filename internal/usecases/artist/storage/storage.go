@@ -34,42 +34,89 @@ func NewStorage(db *sqlx.DB, logger *logrus.Logger) *Storage {
 	}
 }
 
-func (s *Storage) GetArtistByID(_ context.Context, artistID int) (Artist, error) {
-	query := `
+func (s *Storage) GetArtistByID(_ context.Context, filter GetArtistByIDFilter) (GetArtistByIDResp, error) {
+    query := `
         SELECT
-			id,
-			name,
-			bio,
-			avatar_url
-        FROM artist
-        WHERE id = $1
+            a.id,
+            a.name,
+            a.bio,
+            a.avatar_url,
+            s.id AS song_id,
+            s.title AS song_title,
+            s.cover_url AS song_cover,
+            s.views AS song_views,
+            s.release_date AS song_release
+        FROM artist a
+        LEFT JOIN (
+            SELECT * FROM song 
+            WHERE artist_id = $1 
+            ORDER BY release_date DESC 
+            LIMIT $2 OFFSET $3
+        ) s ON a.id = s.artist_id
+        WHERE a.id = $1
+		ORDER BY s.views DESC
     `
 
-	row := s.db.QueryRow(query, artistID)
+    rows, err := s.db.Query(query, filter.ArtistID, filter.Limit, filter.Offset)
+    if err != nil {
+        return GetArtistByIDResp{}, fmt.Errorf("query: %v", err)
+    }
+    defer rows.Close()
 
-	var artist Artist
-	var bio sql.NullString
-	var avatarURL sql.NullString
-	if err := row.Scan(
-		&artist.ArtistID,
-		&artist.Name,
-		&bio,
-		&avatarURL,
-	); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return Artist{}, ErrArtistNotFound
-		}
-		return Artist{}, fmt.Errorf("query: %v", err)
-	}
+    var out GetArtistByIDResp
+    var songs []Song
+    
+    firstRow := true
+    for rows.Next() {
+        var (
+            sID       sql.NullInt64
+            sTitle    sql.NullString
+            sCover    sql.NullString
+            sViews    sql.NullInt64
+            sRelease  sql.NullString
+            bio       sql.NullString
+            avatarURL sql.NullString
+        )
 
-	if bio.Valid {
-		artist.Bio = bio.String
-	}
-	if avatarURL.Valid {
-		artist.AvatarURL = avatarURL.String
-	}
+        err := rows.Scan(
+            &out.ArtistID,
+            &out.Name,
+            &bio,
+            &avatarURL,
+            &sID,
+            &sTitle,
+            &sCover,
+            &sViews,
+            &sRelease,
+        )
+        if err != nil {
+            return GetArtistByIDResp{}, fmt.Errorf("scan: %v", err)
+        }
 
-	return artist, nil
+        if firstRow {
+            out.Bio = bio.String
+            out.AvatarURL = avatarURL.String
+            firstRow = false
+        }
+
+        // Если песня есть (sID.Valid), добавляем её в слайс
+        if sID.Valid {
+            songs = append(songs, Song{
+                ID:          int(sID.Int64),
+                Title:       sTitle.String,
+                CoverURL:    sCover.String,
+                Views:       int(sViews.Int64),
+                ReleaseDate: sRelease.String,
+            })
+        }
+    }
+
+    if firstRow {
+        return GetArtistByIDResp{}, ErrArtistNotFound
+    }
+
+    out.Songs = songs
+    return out, nil
 }
 
 func (s *Storage) CreateArtist(_ context.Context, filter CreateArtistFilter) (Artist, error) {

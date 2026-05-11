@@ -107,8 +107,8 @@ type DeleteVoteIn struct {
 
 type GetUserAnnotationsIn struct {
 	UserID int `param:"id" validate:"required"`
-	Limit  int `query:"limit" validate:"omitempty,min=1,max=100"`
-	Offset int `query:"offset" validate:"omitempty,min=0"`
+	Limit  int `query:"limit"`
+	Offset int `query:"offset"`
 }
 
 type UserAnnotation struct {
@@ -117,6 +117,7 @@ type UserAnnotation struct {
 	Content    string   `json:"content"`
 	StartIndex int      `json:"start_index"`
 	EndIndex   int      `json:"end_index"`
+	Snippet    string   `json:"snippet"`
 	Rating     int      `json:"rating"`
 	CreatedAt  string   `json:"created_at"`
 	UpdatedAt  string   `json:"updated_at"`

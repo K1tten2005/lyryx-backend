@@ -653,6 +653,7 @@ func getUserAnnotationsToOut(anns []dto.AnnotationInfo, total, offset, userID in
 			Content:    a.Content,
 			StartIndex: a.StartIndex,
 			EndIndex:   a.EndIndex,
+			Snippet:    a.Snippet,
 			Rating:     a.Rating,
 			CreatedAt:  a.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 			UpdatedAt:  a.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),

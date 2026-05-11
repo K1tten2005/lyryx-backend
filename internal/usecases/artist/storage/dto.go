@@ -9,6 +9,28 @@ type Artist struct {
 	AvatarURL string
 }
 
+type GetArtistByIDFilter struct {
+	ArtistID int
+	Limit    int
+	Offset   int
+}
+
+type GetArtistByIDResp struct {
+	ArtistID  int
+	Name      string
+	Bio       string
+	AvatarURL string
+	Songs     []Song
+}
+
+type Song struct {
+	ID          int
+	Title       string
+	CoverURL    string
+	Views       int
+	ReleaseDate string
+}
+
 type CreateArtistFilter struct {
 	Name string
 	Bio  string

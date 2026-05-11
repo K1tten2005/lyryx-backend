@@ -49,6 +49,7 @@ func mapToDTOAnn(info storageDto.AnnotationInfo) dto.AnnotationInfo {
 		Content:    info.Content,
 		StartIndex: info.StartIndex,
 		EndIndex:   info.EndIndex,
+		Snippet:    info.Snippet,
 		Rating:     info.Rating,
 		CreatedAt:  info.CreatedAt,
 		UpdatedAt:  info.UpdatedAt,

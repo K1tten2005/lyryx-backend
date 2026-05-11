@@ -15,7 +15,7 @@ var (
 )
 
 type storage interface {
-	GetArtistByID(_ context.Context, artistID int) (storageDto.Artist, error)
+	GetArtistByID(_ context.Context, filter storageDto.GetArtistByIDFilter) (storageDto.GetArtistByIDResp, error)
 	CreateArtist(_ context.Context, filter storageDto.CreateArtistFilter) (storageDto.Artist, error)
 	UpdateArtistInfo(_ context.Context, filter storageDto.UpdateArtistInfoFilter) (storageDto.Artist, error)
 	UpdateArtistAvatar(_ context.Context, filter storageDto.UpdateArtistAvatarFilter) error
@@ -31,20 +31,38 @@ func NewStorage(storage storage) *Storage {
 	}
 }
 
-func (s *Storage) GetArtistByID(ctx context.Context, artistID int) (dto.Artist, error) {
-	artist, err := s.storage.GetArtistByID(ctx, artistID)
-	if err != nil {
-		if errors.Is(err, storageDto.ErrArtistNotFound) {
-			return dto.Artist{}, ErrArtistNotFound
-		}
-		return dto.Artist{}, fmt.Errorf("get artist by id: %v", err)
+func (s *Storage) GetArtistByID(ctx context.Context, opts dto.GetArtistByIDOpts) (dto.GetArtistByIDResp, error) {
+	filter := storageDto.GetArtistByIDFilter{
+		ArtistID: opts.ArtistID,
+		Limit:    opts.Limit,
+		Offset:   opts.Offset,
 	}
 
-	return dto.Artist{
+	artist, err := s.storage.GetArtistByID(ctx, filter)
+	if err != nil {
+		if errors.Is(err, storageDto.ErrArtistNotFound) {
+			return dto.GetArtistByIDResp{}, ErrArtistNotFound
+		}
+		return dto.GetArtistByIDResp{}, fmt.Errorf("get artist by id: %v", err)
+	}
+
+	songsUc := make([]dto.Song, 0, len(artist.Songs))
+	for _, s := range artist.Songs {
+		songsUc = append(songsUc, dto.Song{
+			ID:          s.ID,
+			Title:       s.Title,
+			CoverURL:    s.CoverURL,
+			Views:       s.Views,
+			ReleaseDate: s.ReleaseDate,
+		})
+	}
+
+	return dto.GetArtistByIDResp{
 		ArtistID:  artist.ArtistID,
 		Name:      artist.Name,
 		Bio:       artist.Bio,
 		AvatarURL: artist.AvatarURL,
+		Songs:     songsUc,
 	}, nil
 }
 

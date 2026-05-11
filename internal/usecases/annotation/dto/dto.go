@@ -19,6 +19,7 @@ type AnnotationInfo struct {
 	Content    string
 	StartIndex int
 	EndIndex   int
+	Snippet    string
 	Rating     int
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
