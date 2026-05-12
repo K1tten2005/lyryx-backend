@@ -111,7 +111,7 @@ func getSongByIDToOut(song dto.SongInfo) GetSongByIDOut {
 		Title:       song.Title,
 		Lyrics:      song.Lyrics,
 		CoverURL:    song.CoverURL,
-		ReleaseDate: song.ReleaseDate,
+		ReleaseDate: song.ReleaseDate.Format("2006-01-02"),
 		Views:       song.Views,
 		Artist: Artist{
 			ArtistID:  song.Artist.ArtistID,
@@ -186,7 +186,7 @@ func postSongToOut(song dto.SongInfo) PostSongOut {
 		Title:       song.Title,
 		Lyrics:      song.Lyrics,
 		CoverURL:    song.CoverURL,
-		ReleaseDate: song.ReleaseDate,
+		ReleaseDate: song.ReleaseDate.Format("2006-01-02"),
 		Views:       song.Views,
 		Artist: Artist{
 			ArtistID:  song.Artist.ArtistID,
@@ -277,7 +277,7 @@ func patchUpdateSongToOut(song dto.SongInfo) PatchUpdateSongOut {
 		Title:       song.Title,
 		Lyrics:      song.Lyrics,
 		CoverURL:    song.CoverURL,
-		ReleaseDate: song.ReleaseDate,
+		ReleaseDate: song.ReleaseDate.Format("2006-01-02"),
 		Views:       song.Views,
 		Artist: Artist{
 			ArtistID:  song.Artist.ArtistID,

@@ -1,19 +1,17 @@
 package song
 
-import "time"
-
 type GetSongByIDIn struct {
 	SongID int `param:"id" validate:"required"`
 }
 
 type GetSongByIDOut struct {
-	SongID      int       `json:"id"`
-	Title       string    `json:"title"`
-	Lyrics      string    `json:"lyrics"`
-	CoverURL    string    `json:"cover_url"`
-	ReleaseDate time.Time `json:"release_date"`
-	Views       int       `json:"views"`
-	Artist      Artist    `json:"artist"`
+	SongID      int    `json:"id"`
+	Title       string `json:"title"`
+	Lyrics      string `json:"lyrics"`
+	CoverURL    string `json:"cover_url"`
+	ReleaseDate string `json:"release_date"`
+	Views       int    `json:"views"`
+	Artist      Artist `json:"artist"`
 }
 
 type Artist struct {
@@ -32,13 +30,13 @@ type PostSongIn struct {
 }
 
 type PostSongOut struct {
-	SongID      int       `json:"id"`
-	Title       string    `json:"title"`
-	Lyrics      string    `json:"lyrics"`
-	CoverURL    string    `json:"cover_url"`
-	ReleaseDate time.Time `json:"release_date"`
-	Views       int       `json:"views"`
-	Artist      Artist    `json:"artist"`
+	SongID      int    `json:"id"`
+	Title       string `json:"title"`
+	Lyrics      string `json:"lyrics"`
+	CoverURL    string `json:"cover_url"`
+	ReleaseDate string `json:"release_date"`
+	Views       int    `json:"views"`
+	Artist      Artist `json:"artist"`
 }
 
 type PatchUpdateSongIn struct {
@@ -50,13 +48,13 @@ type PatchUpdateSongIn struct {
 }
 
 type PatchUpdateSongOut struct {
-	SongID      int       `json:"id"`
-	Title       string    `json:"title"`
-	Lyrics      string    `json:"lyrics"`
-	CoverURL    string    `json:"cover_url"`
-	ReleaseDate time.Time `json:"release_date"`
-	Views       int       `json:"views"`
-	Artist      Artist    `json:"artist"`
+	SongID      int    `json:"id"`
+	Title       string `json:"title"`
+	Lyrics      string `json:"lyrics"`
+	CoverURL    string `json:"cover_url"`
+	ReleaseDate string `json:"release_date"`
+	Views       int    `json:"views"`
+	Artist      Artist `json:"artist"`
 }
 
 type PatchUpdateCoverOut struct {

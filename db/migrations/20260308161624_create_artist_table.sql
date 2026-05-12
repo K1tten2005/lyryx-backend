@@ -5,8 +5,8 @@ CREATE TABLE artist (
     name        VARCHAR(255)  NOT NULL     UNIQUE,
     bio         TEXT,
     avatar_url  VARCHAR(255),
-    created_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+    created_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 -- +goose StatementEnd
 

@@ -6,10 +6,10 @@ CREATE TABLE song (
     artist_id    INTEGER      NOT NULL REFERENCES artist(id) ON DELETE CASCADE,
     lyrics       TEXT         NOT NULL,
     cover_url    VARCHAR(255),
-    release_date DATE,
+    release_date DATE         NOT NULL DEFAULT CURRENT_DATE,
     views        INTEGER      DEFAULT 0,
-    created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-    updated_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+    created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Индекс для быстрого поиска всех песен артиста

@@ -10,7 +10,7 @@ type SongInfo struct {
 	Title       string
 	Lyrics      string
 	CoverURL    string
-	ReleaseDate time.Time
+	ReleaseDate *time.Time
 	Views       int
 	Artist      Artist
 }

@@ -10,8 +10,8 @@ CREATE TABLE users (
     role             VARCHAR(50)  NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'moderator')),
     reputation_score INTEGER      DEFAULT 0,
     refresh_token    TEXT,
-    created_at       TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
+    created_at       TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- При миграции добавляем модератора с паролем Moder123!

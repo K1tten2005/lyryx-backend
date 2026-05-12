@@ -186,7 +186,7 @@ func (s *Storage) scanSongInfo(row *sql.Row) (SongInfo, error) {
 		song.CoverURL = coverURL.String
 	}
 	if releaseDate.Valid {
-		song.ReleaseDate = releaseDate.Time
+		song.ReleaseDate = &releaseDate.Time
 	}
 	if bio.Valid {
 		artist.Bio = bio.String

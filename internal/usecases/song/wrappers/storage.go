@@ -44,7 +44,7 @@ func (s *Storage) GetSongByID(ctx context.Context, songID int) (dto.SongInfo, er
 		Title:       song.Title,
 		Lyrics:      song.Lyrics,
 		CoverURL:    song.CoverURL,
-		ReleaseDate: song.ReleaseDate,
+		ReleaseDate: *song.ReleaseDate,
 		Views:       song.Views,
 		Artist: dto.Artist{
 			ArtistID:  song.Artist.ArtistID,
@@ -72,7 +72,7 @@ func (s *Storage) PostSong(ctx context.Context, opts dto.PostSongOpts) (dto.Song
 		Title:       song.Title,
 		Lyrics:      song.Lyrics,
 		CoverURL:    song.CoverURL,
-		ReleaseDate: song.ReleaseDate,
+		ReleaseDate: *song.ReleaseDate,
 		Views:       song.Views,
 		Artist: dto.Artist{
 			ArtistID:  song.Artist.ArtistID,
@@ -107,7 +107,7 @@ func (s *Storage) PatchUpdateSong(ctx context.Context, opts dto.PatchUpdateSongO
 		Title:       song.Title,
 		Lyrics:      song.Lyrics,
 		CoverURL:    song.CoverURL,
-		ReleaseDate: song.ReleaseDate,
+		ReleaseDate: *song.ReleaseDate,
 		Views:       song.Views,
 		Artist: dto.Artist{
 			ArtistID:  song.Artist.ArtistID,
