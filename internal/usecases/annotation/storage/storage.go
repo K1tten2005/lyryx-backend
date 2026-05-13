@@ -251,6 +251,21 @@ func (s *Storage) VoteAnnotation(ctx context.Context, filter VoteAnnotationFilte
 	}
 	defer tx.Rollback()
 
+	var authorID int
+	err = tx.GetContext(ctx, &authorID, `
+    SELECT author_id
+    FROM annotation
+    WHERE id = $1
+`, filter.AnnotationID)
+
+	if err != nil {
+		return 0, fmt.Errorf("get annotation author: %w", err)
+	}
+
+	if authorID == filter.UserID {
+		return 0, nil
+	}
+
 	// 1. Проверяем текущий голос
 	var oldVoteValue sql.NullInt64
 	err = tx.QueryRowContext(ctx, "SELECT vote_value FROM annotation_vote WHERE user_id = $1 AND annotation_id = $2", filter.UserID, filter.AnnotationID).Scan(&oldVoteValue)
@@ -297,6 +312,22 @@ func (s *Storage) VoteAnnotation(ctx context.Context, filter VoteAnnotationFilte
 		return 0, fmt.Errorf("update annotation rating: %w", err)
 	}
 
+	delta := filter.Value - oldVal
+
+	_, err = tx.ExecContext(ctx, `
+    UPDATE users
+    SET reputation_score = reputation_score + $1
+    WHERE id = (
+        SELECT author_id
+        FROM annotation
+        WHERE id = $2
+    )
+`, delta, filter.AnnotationID)
+
+	if err != nil {
+		return 0, fmt.Errorf("update author reputation: %w", err)
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return 0, fmt.Errorf("commit tx: %w", err)
@@ -313,7 +344,36 @@ func (s *Storage) DeleteVote(ctx context.Context, filter RemoveVoteFilter) error
 	}
 	defer tx.Rollback()
 
+	var oldVote int
+
+	err = tx.GetContext(ctx, &oldVote, `
+    SELECT vote_value
+    FROM annotation_vote
+    WHERE user_id = $1 AND annotation_id = $2
+`, filter.UserID, filter.AnnotationID)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return err
+	}
+
 	_, err = tx.ExecContext(ctx, "DELETE FROM annotation_vote WHERE user_id = $1 AND annotation_id = $2", filter.UserID, filter.AnnotationID)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, `
+    UPDATE users
+    SET reputation_score = reputation_score - $1
+    WHERE id = (
+        SELECT author_id
+        FROM annotation
+        WHERE id = $2
+    )
+`, oldVote, filter.AnnotationID)
+
 	if err != nil {
 		return err
 	}

@@ -290,7 +290,7 @@ func (u *Usecase) buildAiPrompt(song songDto.SongInfo, selectedLyrics, userQuest
 - Будь точен, опирайся на текст песни
 - Если вопрос не относится к тексту — так и скажи
 - Не выдумывай факты
-- Максимальная длина ответа: 100 слов`,
+- Максимальная длина ответа: 300 слов`,
 		song.Title,
 		song.Artist.Name,
 		lyrics,
