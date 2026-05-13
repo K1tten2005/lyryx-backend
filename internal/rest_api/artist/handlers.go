@@ -63,6 +63,8 @@ func (h *Handlers) RegisterHandlers(e *echo.Echo, authMiddleware echo.Middleware
 // @Tags         artist
 // @Produce      json
 // @Param        id   path int      true  "Artist ID"
+// @Param        limit    query int  false "Лимит"  default(20)
+// @Param        offset   query int  false "Смещение"  default(0)
 // @Success      200    {object} GetArtistByIDOut       "Успешный ответ с профилем артиста"
 // @Failure      400    {object} echo.HTTPError      "Некорректный id артиста"
 // @Failure      404    {object} echo.HTTPError      "Артист не найден"

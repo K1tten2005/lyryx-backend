@@ -807,6 +807,16 @@ paths:
         name: id
         required: true
         type: integer
+      - default: 20
+        description: Лимит
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Смещение
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
