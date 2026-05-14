@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	accessTokenExp  = time.Second * 5
+	accessTokenExp  = time.Hour * 5
 	refreshTokenExp = time.Hour * 24 * 30
 )
 
